@@ -1,0 +1,23 @@
+{
+  "name": "projetobibliotecabackend",
+  "version": "1.0.0",
+  "main": "./src/server.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mistx144r/FNR_Biblioteca_Backend.git"
+  },
+  "keywords": [],
+  "bugs": {
+    "url": "https://github.com/Mistx144r/FNR_Biblioteca_Backend/issues"
+  },
+  "homepage": "https://github.com/Mistx144r/FNR_Biblioteca_Backend#readme",
+  "description": ""
+}
