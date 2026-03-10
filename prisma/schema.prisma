@@ -1,0 +1,187 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum condition {
+  VERY_BAD
+  BAD
+  NORMAL
+  GOOD
+  PRISTINE
+}
+
+// Adicionar Depois A Cidade Do Trabalhador
+model Worker {
+  id_worker    BigInt         @id @default(autoincrement())
+  name         String         @db.VarChar(255)
+  cpf          String         @unique @db.VarChar(11)
+  email        String         @unique @db.VarChar(255)
+  birth_date   DateTime?      @db.Date // Nullable
+  telephone    String?        @db.VarChar(8) // Nullable
+  cellphone    String         @db.VarChar(13)
+  address      String         @db.VarChar(255)
+  created_at   DateTime       @default(now())
+  updated_at   DateTime       @default(now())
+  Worker_Roles Worker_Roles[]
+  Loan         Loan[]
+}
+
+model Roles {
+  id_roles     BigInt         @id @default(autoincrement())
+  name         String         @db.VarChar(255)
+  Worker_Roles Worker_Roles[]
+}
+
+model Worker_Roles {
+  worker_roles_id BigInt @id @default(autoincrement())
+  fk_role_id      BigInt
+  fk_worker_id    BigInt
+
+  role   Roles  @relation(fields: [fk_role_id], references: [id_roles])
+  worker Worker @relation(fields: [fk_worker_id], references: [id_worker])
+}
+
+model Student {
+  id_student BigInt   @id @default(autoincrement())
+  name       String   @db.VarChar(255)
+  cpf        String   @unique @db.VarChar(11)
+  email      String   @unique @db.VarChar(255)
+  enrollment String   @unique @db.VarChar(20)
+  birth_date DateTime @db.Date
+  telephone  String   @db.VarChar(8)
+  cellphone  String   @db.VarChar(13)
+  has_fine   Boolean  @default(false)
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+  Fine       Fine[]
+  Loan       Loan[]
+}
+
+model Book {
+  id_book        BigInt   @id @default(autoincrement())
+  name           String   @db.VarChar(255)
+  isbn           String?  @db.VarChar(13) // Nullable
+  description    String   @db.Text
+  publisher      String   @db.VarChar(255)
+  language       String   @db.VarChar(5)
+  fk_category_id BigInt   @db.BigInt
+  edition        Int      @db.SmallInt
+  pages          Int?     @db.Int // Nullable
+  bookcover      String?  @db.Text // Nullable
+  is_consult     Boolean  @default(false)
+  published_at   DateTime @db.Date
+  created_at     DateTime @default(now())
+  updated_at     DateTime @default(now())
+
+  category               Category                 @relation(fields: [fk_category_id], references: [id_category])
+  Authors_In_Book        Authors_In_Book[]
+  Sub_Categories_Of_Book Sub_Categories_Of_Book[]
+}
+
+model Author {
+  id_author       BigInt            @id @default(autoincrement())
+  name            String            @db.VarChar(255)
+  nationality     String            @db.VarChar(255)
+  birth_date      DateTime          @db.Date
+  Authors_In_Book Authors_In_Book[]
+}
+
+model Authors_In_Book {
+  authors_in_book_id BigInt @id @default(autoincrement())
+  fk_author_id       BigInt
+  fk_book_id         BigInt
+
+  author Author @relation(fields: [fk_author_id], references: [id_author])
+  book   Book   @relation(fields: [fk_book_id], references: [id_book])
+}
+
+model Sector {
+  id_sector      BigInt @id @default(autoincrement())
+  name           String @db.VarChar(255)
+  letter         String @unique @db.VarChar(1)
+  fk_category_id BigInt
+
+  category Category   @relation(fields: [fk_category_id], references: [id_category])
+  Bookcase Bookcase[]
+}
+
+model Bookcase {
+  id_bookcase  BigInt @id @default(autoincrement())
+  name         String @db.VarChar(255)
+  fk_sector_id BigInt
+
+  sector Sector @relation(fields: [fk_sector_id], references: [id_sector])
+}
+
+model Book_Copy {
+  id_book_copy   BigInt      @id @default(autoincrement())
+  fk_book_id     BigInt
+  fk_bookcase_id BigInt
+  is_avaliable   Boolean     @default(true)
+  condition      condition
+  barcode        String      @db.VarChar(255)
+  Loan_Item      Loan_Item[]
+}
+
+model Fine {
+  id_fine       BigInt   @id @default(autoincrement())
+  fk_student_id BigInt
+  fk_loan_id    BigInt
+  amount        Decimal  @db.Decimal()
+  is_paid       Boolean  @default(false)
+  generated_at  DateTime @default(now())
+  paid_at       DateTime @default(now())
+
+  student Student @relation(fields: [fk_student_id], references: [id_student])
+  loan    Loan    @relation(fields: [fk_loan_id], references: [id_loan])
+}
+
+model Loan {
+  id_loan       BigInt   @id @default(autoincrement())
+  fk_student_id BigInt
+  fk_worker_id  BigInt
+  loan_date     DateTime @default(now())
+  due_date      DateTime @db.Date
+  returned_at   DateTime @db.Date
+
+  student   Student     @relation(fields: [fk_student_id], references: [id_student])
+  worker    Worker      @relation(fields: [fk_worker_id], references: [id_worker])
+  Fine      Fine[]
+  Loan_Item Loan_Item[]
+}
+
+model Loan_Item {
+  id_loan_item    BigInt @id @default(autoincrement())
+  fk_book_copy_id BigInt
+  fk_loan_item_id BigInt
+
+  book_copy Book_Copy @relation(fields: [fk_book_copy_id], references: [id_book_copy])
+  loan      Loan      @relation(fields: [fk_loan_item_id], references: [id_loan])
+}
+
+model Category {
+  id_category BigInt   @id @default(autoincrement())
+  name        String   @db.VarChar(255)
+  Book        Book[]
+  Sector      Sector[]
+}
+
+model Sub_Category {
+  id_sub_category        BigInt                   @id @default(autoincrement())
+  name                   String                   @db.VarChar(255)
+  Sub_Categories_Of_Book Sub_Categories_Of_Book[]
+}
+
+model Sub_Categories_Of_Book {
+  id_sub_categories_of_book BigInt @id @default(autoincrement())
+  fk_sub_category           BigInt
+  fk_book_id                BigInt
+
+  sub_category Sub_Category @relation(fields: [id_sub_categories_of_book], references: [id_sub_category])
+  book         Book         @relation(fields: [fk_book_id], references: [id_book])
+}

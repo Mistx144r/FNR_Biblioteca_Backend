@@ -1,26 +1,27 @@
+// API Basic Packages
 import { apiReference } from "@scalar/express-api-reference";
-import express from "express";
-import cors from "cors";
-import dotenv from "dotenv";
+import express = require("express");
+import cors = require("cors");
+import dotenv = require("dotenv");
+
+// API Routes Versions
+import routesV1 from "./routes/v1";
 
 dotenv.config();
-const api: express.Application = express();
+
+const app = express();
 const PORT = 3000;
 
-api.use(
-  cors({
-    origin: "*",
-  }),
+app.use(
+    cors({
+        origin: "*"
+    })
 );
 
-api.use(express.json());
-api.use(
-  "/reference",
-  apiReference({
-    url: "/openapi.json",
-  }),
-);
+app.use(express.json());
+app.use("/reference", apiReference({url: "/openapi.json"}));
+app.use("/api/v1/", routesV1);
 
-api.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server is running on https://localhost:${PORT}`);
+app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
 });
