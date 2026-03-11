@@ -21,14 +21,11 @@ model Worker {
   name         String         @db.VarChar(255)
   cpf          String         @unique @db.VarChar(11)
   email        String         @unique @db.VarChar(255)
-  birth_date   DateTime?      @db.Date // Nullable
   telephone    String?        @db.VarChar(8) // Nullable
   cellphone    String         @db.VarChar(13)
-  address      String         @db.VarChar(255)
   created_at   DateTime       @default(now())
   updated_at   DateTime       @default(now())
   Worker_Roles Worker_Roles[]
-  Loan         Loan[]
 }
 
 model Roles {
@@ -46,26 +43,10 @@ model Worker_Roles {
   worker Worker @relation(fields: [fk_worker_id], references: [id_worker])
 }
 
-model Student {
-  id_student BigInt   @id @default(autoincrement())
-  name       String   @db.VarChar(255)
-  cpf        String   @unique @db.VarChar(11)
-  email      String   @unique @db.VarChar(255)
-  enrollment String   @unique @db.VarChar(20)
-  birth_date DateTime @db.Date
-  telephone  String   @db.VarChar(8)
-  cellphone  String   @db.VarChar(13)
-  has_fine   Boolean  @default(false)
-  created_at DateTime @default(now())
-  updated_at DateTime @default(now())
-  Fine       Fine[]
-  Loan       Loan[]
-}
-
 model Book {
   id_book        BigInt   @id @default(autoincrement())
   name           String   @db.VarChar(255)
-  isbn           String?  @db.VarChar(13) // Nullable
+  isbn           String   @unique @db.VarChar(13) // Nullable
   description    String   @db.Text
   publisher      String   @db.VarChar(255)
   language       String   @db.VarChar(5)
@@ -73,7 +54,6 @@ model Book {
   edition        Int      @db.SmallInt
   pages          Int?     @db.Int // Nullable
   bookcover      String?  @db.Text // Nullable
-  is_consult     Boolean  @default(false)
   published_at   DateTime @db.Date
   created_at     DateTime @default(now())
   updated_at     DateTime @default(now())
@@ -86,8 +66,6 @@ model Book {
 model Author {
   id_author       BigInt            @id @default(autoincrement())
   name            String            @db.VarChar(255)
-  nationality     String            @db.VarChar(255)
-  birth_date      DateTime          @db.Date
   Authors_In_Book Authors_In_Book[]
 }
 
@@ -119,49 +97,13 @@ model Bookcase {
 }
 
 model Book_Copy {
-  id_book_copy   BigInt      @id @default(autoincrement())
+  id_book_copy   BigInt    @id @default(autoincrement())
   fk_book_id     BigInt
   fk_bookcase_id BigInt
-  is_avaliable   Boolean     @default(true)
+  is_avaliable   Boolean   @default(true)
+  is_consult     Boolean   @default(false)
   condition      condition
-  barcode        String      @db.VarChar(255)
-  Loan_Item      Loan_Item[]
-}
-
-model Fine {
-  id_fine       BigInt   @id @default(autoincrement())
-  fk_student_id BigInt
-  fk_loan_id    BigInt
-  amount        Decimal  @db.Decimal()
-  is_paid       Boolean  @default(false)
-  generated_at  DateTime @default(now())
-  paid_at       DateTime @default(now())
-
-  student Student @relation(fields: [fk_student_id], references: [id_student])
-  loan    Loan    @relation(fields: [fk_loan_id], references: [id_loan])
-}
-
-model Loan {
-  id_loan       BigInt   @id @default(autoincrement())
-  fk_student_id BigInt
-  fk_worker_id  BigInt
-  loan_date     DateTime @default(now())
-  due_date      DateTime @db.Date
-  returned_at   DateTime @db.Date
-
-  student   Student     @relation(fields: [fk_student_id], references: [id_student])
-  worker    Worker      @relation(fields: [fk_worker_id], references: [id_worker])
-  Fine      Fine[]
-  Loan_Item Loan_Item[]
-}
-
-model Loan_Item {
-  id_loan_item    BigInt @id @default(autoincrement())
-  fk_book_copy_id BigInt
-  fk_loan_item_id BigInt
-
-  book_copy Book_Copy @relation(fields: [fk_book_copy_id], references: [id_book_copy])
-  loan      Loan      @relation(fields: [fk_loan_item_id], references: [id_loan])
+  barcode        String    @db.VarChar(255)
 }
 
 model Category {
