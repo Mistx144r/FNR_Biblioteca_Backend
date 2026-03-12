@@ -1,56 +1,27 @@
-import {Prisma} from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../utils/prisma";
+import { AppError } from "../errors/AppError";
+import { HTTPCODES } from "../utils/httpCodes";
 
 const repository = prisma;
 
-// Fazer uma revisao completa aqui
-export async function getAll(pageS: string = "1", limitS: string = "10") {
-    const page = Number(pageS);
-    const limit = Number(limitS);
+// Worker Main Functions
 
-    if (!page) {
-        throw new Error("O valor enviado pela página não é um número ou é menor ou igual a 0.");
-    }
-
-    if (!limit) {
-        throw new Error("O valor enviado pelo limite não é um número ou é menor ou igual a 0.");
-    }
-
-    const skip = (page - 1) * limit;
-
-    const [workers, total] = await Promise.all([
-        repository.worker.findMany({
-            skip,
-            take: limit,
-            orderBy: { id_worker: "asc" }
-        }),
-        repository.worker.count()
-    ]);
-
-    return {
-        data: workers,
-        meta: {
-            total,
-            page,
-            limit,
-            totalPages: Math.ceil(total / limit),
-            hasNextPage: page < Math.ceil(total / limit),
-            hasPreviousPage: page > 1
-        }
-    };
+export async function getAll() {
+    return repository.worker.findMany();
 }
 
-export async function getById(idS: string | string[]) {
-    const id = Number(idS);
+export async function getById(workerIdS: string | string[]) {
+    const workerId = Number(Array.isArray(workerIdS) ? workerIdS[0] : workerIdS);
 
-    if (!id) {
-        throw new Error("O valor do ID não é um número ou é menor ou igual a 0.");
+    if (!workerId) {
+        throw new AppError("ID do Bibliotecário(a) é inválido.", HTTPCODES.BADREQUEST);
     }
 
-    const worker = await repository.worker.findUnique({where: {id_worker: (id)}});
+    const worker = await repository.worker.findUnique({where: {id_worker: (workerId)}});
 
     if (!worker) {
-        throw new Error("Bibliotecário não encontrado.");
+        throw new AppError("Bibliotecário(a) não encontrado.", HTTPCODES.NOTFOUND);
     }
 
     return worker;
@@ -59,47 +30,77 @@ export async function getById(idS: string | string[]) {
 export async function create(body: Prisma.WorkerCreateInput){
     const { name, cpf, email, cellphone } = body;
 
-    if (!name || !cpf || !email || !cellphone ) {
-        throw new  Error("Dados insuficientes para registro do funcionário.")
+    if (body.id_worker) {
+        delete body.id_worker;
     }
 
-    return repository.worker.create({data: body});
+    if (!name || !cpf || !email || !cellphone) {
+        throw new AppError("Dados insuficientes para registro do funcionário.", HTTPCODES.BADREQUEST);
+    }
+
+    const workerAlreadyWithCPFOrEmail = await repository.worker.findFirst({
+        where: {
+            OR: [
+                { cpf: cpf as string },
+                { email: email as string }
+            ]
+        }
+    });
+
+    if (workerAlreadyWithCPFOrEmail) {
+        throw new AppError("Já existe um funcionário com esse CPF ou Email.", HTTPCODES.BADREQUEST);
+    }
+
+    return repository.worker.create({ data: body });
 }
 
-export async function update(idS: string | string[], body: Prisma.WorkerUpdateInput) {
-    const { name, cpf, email, cellphone } = body;
+export async function update(workerIdS: string | string[], body: Prisma.WorkerUpdateInput) {
+    const workerId = Number(Array.isArray(workerIdS) ? workerIdS[0] : workerIdS);
 
-    if (!name || !cpf || !email || !cellphone ) {
-        throw new Error("Dados insuficientes para atualização do funcionário.")
+    if (body.id_worker) {
+        delete body.id_worker;
     }
 
-    const id = Number(idS);
-
-    if (!id) {
-        throw new Error("O valor do ID não é um número ou é menor ou igual a 0.");
+    if (!workerId) {
+        throw new AppError("ID do Bibliotecário(a) é inválido.", HTTPCODES.BADREQUEST);
     }
 
-    const worker = await repository.worker.findUnique({where: {id_worker: id}});
+    const worker = await repository.worker.findUnique({where: {id_worker: workerId}});
 
     if (!worker) {
         throw new Error("Funcionário não encontrado!")
     }
 
-    return repository.worker.update({where: {id_worker: id}, data: body});
-}
+    const workerAlreadyWithCPFOrEmail = await repository.worker.findFirst({
+        where: {
+            OR: [
+                { cpf: body.cpf as string },
+                { email: body.email as string }
+            ]
+        }
+    });
 
-export async function deleteById(idS: string | string[]) {
-    const id = Number(idS);
-
-    if (!id) {
-        throw new Error("O valor do ID não é um número ou é menor ou igual a 0.");
+    if (workerAlreadyWithCPFOrEmail) {
+        throw new AppError("Já existe um funcionário com esse CPF ou Email.", HTTPCODES.BADREQUEST);
     }
 
-    const worker = await repository.worker.findUnique({where: {id_worker: id}});
+    return repository.worker.update({where: {id_worker: workerId}, data: body});
+}
+
+export async function deleteById(workerIdS: string | string[]) {
+    const workerId = Number(Array.isArray(workerIdS) ? workerIdS[0] : workerIdS);
+
+    if (!workerId) {
+        throw new AppError("ID do Funcionário inválido.", HTTPCODES.BADREQUEST);
+    }
+
+    const worker = await repository.worker.findUnique({where: {id_worker: workerId}});
 
     if (!worker) {
-        throw new Error("Funcionário não encontrado!")
+        throw new AppError("Funcionário não encontrado.", HTTPCODES.NOTFOUND);
     }
 
-    return repository.worker.delete({where: {id_worker: id}})
+    return repository.worker.delete({where: {id_worker: workerId}});
 }
+
+// Worker Role Functions

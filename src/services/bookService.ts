@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../utils/prisma";
 import { AppError } from "../errors/AppError";
+import { HTTPCODES } from "../utils/httpCodes";
 
 const repository = prisma;
 
@@ -10,11 +11,11 @@ export async function getAll(pageS: string = "1", limitS: string = "10") {
     const limit = Number(limitS);
 
     if (!page) {
-        throw new AppError("O valor enviado de Páginas é inválido ou igual a zero (0). 💀🔥🔥 (Erro souvenir)", 400);
+        throw new AppError("O valor enviado de Páginas é inválido ou igual a zero (0). 💀🔥🔥 (Erro souvenir)", HTTPCODES.BADREQUEST);
     }
 
     if (!limit) {
-        throw new AppError("O valor enviado para o Limite é inválido ou igual a zero (0). 💀🔥🔥 (Erro souvenir)", 400);
+        throw new AppError("O valor enviado para o Limite é inválido ou igual a zero (0). 💀🔥🔥 (Erro souvenir)", HTTPCODES.BADREQUEST);
     }
 
     const skip = (page - 1) * limit;
@@ -45,13 +46,13 @@ export async function getById(idBookS: string | string[]) {
     const idBook = Number(Array.isArray(idBookS) ? idBookS[0] : idBookS);
 
     if (!idBook) {
-        throw new AppError("ID do livro inválido.", 400);
+        throw new AppError("ID do livro inválido.", HTTPCODES.BADREQUEST);
     }
 
     const book = await repository.book.findUnique({where: {id_book: idBook}});
 
     if (!book) {
-        throw new AppError("Livro não encontrado.", 404);
+        throw new AppError("Livro não encontrado.", HTTPCODES.NOTFOUND);
     }
 
     return book;
@@ -62,7 +63,7 @@ export async function getAllBookInfoById(idBookS: string | string[]) {
     const idBook = Number(Array.isArray(idBookS) ? idBookS[0] : idBookS);
 
     if (!idBook) {
-        throw new AppError("ID do livro inválido.", 400);
+        throw new AppError("ID do Livro inválido.", HTTPCODES.BADREQUEST);
     }
 
     const [book, authors, subCategories] = await Promise.all([
@@ -87,39 +88,41 @@ export async function create(body: Prisma.BookCreateInput){
     }
 
     if (!name || !isbn || !description || !publisher || !language || !edition || !pages || !bookcover) {
-        throw new AppError("Dados insuficientes para atualização do Livro.", 400);
+        throw new AppError("Dados insuficientes para atualização do Livro.", HTTPCODES.BADREQUEST);
     }
 
     if (!categoryId) {
-        throw new AppError("ID da Categoria inválido.", 400);
+        throw new AppError("ID da Categoria inválido.", HTTPCODES.BADREQUEST);
     }
 
-    const bookAlreadyExistsWithISBN = await repository.book.findUnique({where: {isbn: isbn}});
+    return repository.$transaction(async(tx) => {
+        const bookAlreadyExistsWithISBN = await tx.book.findUnique({where: {isbn: isbn}});
 
-    if (bookAlreadyExistsWithISBN) {
-        throw new AppError("Livro já existe com esse ISBN.", 400);
-    }
-
-    const doesCategoryExists = await repository.category.findUnique({where: {id_category: categoryId}});
-
-    if (!doesCategoryExists) {
-        throw new AppError("Categoria não existe.", 400);
-    }
-
-    return repository.book.create({
-        data: {
-            ...body,
-            published_at: new Date(body.published_at as string),
-            category: {
-                connect: { id_category: categoryId }
-            }
+        if (bookAlreadyExistsWithISBN) {
+            throw new AppError("Livro já existe com esse ISBN.", HTTPCODES.BADREQUEST);
         }
-    });
+
+        const doesCategoryExists = await tx.category.findUnique({where: {id_category: categoryId}});
+
+        if (!doesCategoryExists) {
+            throw new AppError("Categoria não encontrada.", HTTPCODES.NOTFOUND);
+        }
+
+        return tx.book.create({
+            data: {
+                ...body,
+                published_at: new Date(body.published_at as string),
+                category: {
+                    connect: { id_category: categoryId }
+                }
+            }
+        });
+    })
 }
 
 export async function update(idBookS: string | string[], body: Prisma.BookUpdateInput) {
-    const idBook = Number(Array.isArray(idBookS) ? idBookS[0] : idBookS);
     const { category } = body;
+    const idBook = Number(Array.isArray(idBookS) ? idBookS[0] : idBookS);
     const categoryId = Number(Array.isArray(category) ? category[0] : category);
 
     if (body.id_book) {
@@ -131,33 +134,35 @@ export async function update(idBookS: string | string[], body: Prisma.BookUpdate
     }
 
     if (!idBook) {
-        throw new AppError("ID do Livro inválido.", 400);
+        throw new AppError("ID do Livro inválido.", HTTPCODES.BADREQUEST);
     }
 
     if (!categoryId) {
-        throw new AppError("ID da Categoria inválido.", 400);
+        throw new AppError("ID da Categoria inválido.", HTTPCODES.BADREQUEST);
     }
 
-    const book = await repository.book.findUnique({where: {id_book: idBook}});
+    return repository.$transaction(async(tx) => {
+        const book = await tx.book.findUnique({where: {id_book: idBook}});
 
-    if (!book) {
-        throw new AppError("Livro não encontrado.", 404)
-    }
-
-    const doesCategoryExists = await repository.category.findUnique({where: {id_category: categoryId}});
-
-    if (!doesCategoryExists) {
-        throw new AppError("Categoria não existe.", 400);
-    }
-
-    return repository.book.update({
-        where: {id_book: idBook}, data: {
-            ...body,
-            published_at: new Date(body.published_at as string),
-            category: {
-                connect: { id_category: categoryId }
-            }
+        if (!book) {
+            throw new AppError("Livro não encontrado.", HTTPCODES.NOTFOUND);
         }
+
+        const doesCategoryExists = await tx.category.findUnique({where: {id_category: categoryId}});
+
+        if (!doesCategoryExists) {
+            throw new AppError("Categoria não encontrada.", HTTPCODES.NOTFOUND);
+        }
+
+        return tx.book.update({
+            where: {id_book: idBook}, data: {
+                ...body,
+                published_at: new Date(body.published_at as string),
+                category: {
+                    connect: { id_category: categoryId }
+                }
+            }
+        });
     });
 }
 
@@ -165,16 +170,16 @@ export async function deleteById(idBookS: string | string[]) {
     const idBook = Number(Array.isArray(idBookS) ? idBookS[0] : idBookS);
 
     if (!idBook) {
-        throw new AppError("ID do livro inválido.", 400);
+        throw new AppError("ID do Livro inválido.", HTTPCODES.BADREQUEST);
     }
 
     const book = await repository.book.findUnique({where: {id_book: idBook}});
 
     if (!book) {
-        throw new AppError("Livro não encontrado.", 404);
+        throw new AppError("Livro não encontrado.", HTTPCODES.NOTFOUND);
     }
 
-    return repository.book.delete({where: {id_book: idBook}})
+    return repository.book.delete({where: {id_book: idBook}});
 }
 
 // Book Author Functions
@@ -182,7 +187,7 @@ export async function getAuthors(idBookS: string | string[]) {
     const idBook = Number(Array.isArray(idBookS) ? idBookS[0] : idBookS);
 
     if (!idBook) {
-        throw new AppError("ID do livro inválido.", 400);
+        throw new AppError("ID do Livro inválido.", HTTPCODES.BADREQUEST);
     }
 
     const authors = await repository.authors_In_Book.findMany({
@@ -202,24 +207,24 @@ export async function addAuthor(idBookS: string | string[], idAuthorS: string | 
     const idAuthor = Number(Array.isArray(idAuthorS) ? idAuthorS[0] : idAuthorS);
 
     if (!idBook) {
-        throw new AppError("ID do livro inválido.", 400);
+        throw new AppError("ID do Livro inválido.", HTTPCODES.BADREQUEST);
     }
 
     if (!idAuthor) {
-        throw new AppError("ID do Autor inválido.", 400);
+        throw new AppError("ID do Autor inválido.", HTTPCODES.BADREQUEST);
     }
 
     return repository.$transaction(async (tx) => {
         const doesAuthorExists = await tx.author.findUnique({where: {id_author: idAuthor}});
 
         if (!doesAuthorExists) {
-            throw new AppError("Autor não existe.", 404);
+            throw new AppError("Autor não existe.", HTTPCODES.NOTFOUND);
         }
 
         const doesBookExists = await tx.book.findUnique({where: {id_book: idBook}});
 
         if (!doesBookExists) {
-            throw new AppError("Livro não existe.", 404);
+            throw new AppError("Livro não existe.", HTTPCODES.NOTFOUND);
         }
 
         const isAuthorAlreadyInBook = await tx.authors_In_Book.findUnique({
@@ -232,7 +237,7 @@ export async function addAuthor(idBookS: string | string[], idAuthorS: string | 
         });
 
         if (isAuthorAlreadyInBook) {
-            throw new AppError("Autor já relacionado ao Livro.", 400);
+            throw new AppError("Autor já relacionado ao Livro.", HTTPCODES.BADREQUEST);
         }
 
         return tx.authors_In_Book.create({data: {fk_book_id: idBook, fk_author_id: idAuthor}});
@@ -244,15 +249,27 @@ export async function removeAuthor(idBookS: string | string[], idAuthorS: string
     const idAuthor = Number(Array.isArray(idAuthorS) ? idAuthorS[0] : idAuthorS);
 
     if (!idBook) {
-        throw new AppError("ID do livro inválido.", 400);
+        throw new AppError("ID do Livro inválido.", HTTPCODES.BADREQUEST);
     }
 
     if (!idAuthor) {
-        throw new AppError("ID do Autor inválido.", 400);
+        throw new AppError("ID do Autor inválido.", HTTPCODES.BADREQUEST);
     }
 
-    const isAuthorAlreadyInBook =
-        await repository.authors_In_Book.findUnique({
+    return repository.$transaction(async (tx) => {
+        const doesBookExists = await tx.book.findUnique({where: {id_book: idBook}});
+
+        if (!doesBookExists) {
+            throw new AppError("Livro não existe.", HTTPCODES.NOTFOUND);
+        }
+
+        const doesAuthorExists = await tx.author.findUnique({where: {id_author: idAuthor}});
+
+        if (!doesAuthorExists) {
+            throw new AppError("Autor não existe.", HTTPCODES.NOTFOUND);
+        }
+
+        const isAuthorRelatedToTheBook = await tx.authors_In_Book.findUnique({
             where: {
                 fk_author_id_fk_book_id: {
                     fk_author_id: idAuthor,
@@ -261,11 +278,12 @@ export async function removeAuthor(idBookS: string | string[], idAuthorS: string
             }
         });
 
-    if (!isAuthorAlreadyInBook) {
-        throw new AppError("Autor não relacionado ao Livro.", 400)
-    }
+        if (!isAuthorRelatedToTheBook) {
+            throw new AppError("Autor não relacionado ao Livro.", HTTPCODES.BADREQUEST);
+        }
 
-    return repository.authors_In_Book.delete({where: {fk_author_id_fk_book_id: {fk_book_id: idBook, fk_author_id: idAuthor}}});
+        return tx.authors_In_Book.delete({where: {fk_author_id_fk_book_id: {fk_book_id: idBook, fk_author_id: idAuthor}}});
+    });
 }
 
 // Book Sub-Category Functions
@@ -273,7 +291,7 @@ export async function getSubCategories(idBookS: string | string[]) {
     const idBook = Number(Array.isArray(idBookS) ? idBookS[0] : idBookS);
 
     if (!idBook) {
-        throw new AppError("ID do Livro inválido.", 400);
+        throw new AppError("ID do Livro inválido.", HTTPCODES.BADREQUEST);
     }
 
     const subcategories = await repository.sub_Categories_Of_Book.findMany({
@@ -293,28 +311,28 @@ export async function addSubCategory(idBookS: string | string[], idSubCategoryS:
     const idSubCategory = Number(Array.isArray(idSubCategoryS) ? idSubCategoryS[0] : idSubCategoryS);
 
     if (!idBook) {
-        throw new AppError("ID do livro inválido.", 400);
+        throw new AppError("ID do Livro inválido.", HTTPCODES.BADREQUEST);
     }
 
     if (!idSubCategory) {
-        throw new AppError("ID da Sub Categoria inválida.", 400);
+        throw new AppError("ID da Sub Categoria inválida.", HTTPCODES.BADREQUEST);
     }
 
     return repository.$transaction(async (tx) => {
         const doesBookExists = await tx.book.findUnique({where: {id_book: idBook}});
 
         if (!doesBookExists) {
-            throw new AppError("Livro não existe.", 404);
+            throw new AppError("Livro não encontrado.", HTTPCODES.NOTFOUND);
         }
 
         const doesSubCategoryExists = await tx.sub_Category.findUnique({where: {id_sub_category: idSubCategory}});
 
         if (!doesSubCategoryExists) {
-            throw new AppError("Sub-Categoria não existe.", 404);
+            throw new AppError("Sub-Categoria não encontrada.", HTTPCODES.NOTFOUND);
         }
 
         const isSubCategoryAlreadyInBook =
-            await repository.sub_Categories_Of_Book.findUnique({
+            await tx.sub_Categories_Of_Book.findUnique({
                 where: {
                     fk_sub_category_fk_book_id: {
                         fk_book_id: idBook,
@@ -324,7 +342,7 @@ export async function addSubCategory(idBookS: string | string[], idSubCategoryS:
             });
 
         if (isSubCategoryAlreadyInBook) {
-            throw new AppError("Sub-Categoria já relacionada ao Livro.", 400);
+            throw new AppError("Sub-Categoria já relacionada ao Livro.", HTTPCODES.BADREQUEST);
         }
 
         return tx.sub_Categories_Of_Book.create({data: {fk_book_id: idBook, fk_sub_category: idSubCategory}});
@@ -336,26 +354,40 @@ export async function removeSubCategory(idBookS: string | string[], idSubCategor
     const idSubCategory = Number(Array.isArray(idSubCategoryS) ? idSubCategoryS[0] : idSubCategoryS);
 
     if (!idBook) {
-        throw new AppError("ID do Livro inválido.", 400);
+        throw new AppError("ID do Livro inválido.", HTTPCODES.BADREQUEST);
     }
 
     if (!idSubCategory) {
-        throw new AppError("ID da Sub-Categoria inválido.", 400);
+        throw new AppError("ID da Sub-Categoria inválido.", HTTPCODES.BADREQUEST);
     }
 
-    const isSubCategoryAlreadyInBook =
-        await repository.sub_Categories_Of_Book.findUnique({
-            where: {
-                fk_sub_category_fk_book_id: {
-                    fk_book_id: idBook,
-                    fk_sub_category: idSubCategory
+    return repository.$transaction(async (tx) => {
+        const doesBookExists = await tx.book.findUnique({where: {id_book: idBook}});
+
+        if (!doesBookExists) {
+            throw new AppError("Livro não encontrado.", HTTPCODES.NOTFOUND);
+        }
+
+        const doesSubCategoryExists = await tx.sub_Category.findUnique({where: {id_sub_category: idSubCategory}});
+
+        if (!doesSubCategoryExists) {
+            throw new AppError("Sub-Categoria não encontrada.", HTTPCODES.NOTFOUND);
+        }
+
+        const isSubCategoryRelatedToTheBook =
+            await tx.sub_Categories_Of_Book.findUnique({
+                where: {
+                    fk_sub_category_fk_book_id: {
+                        fk_book_id: idBook,
+                        fk_sub_category: idSubCategory
+                    }
                 }
-            }
-        });
+            });
 
-    if (!isSubCategoryAlreadyInBook) {
-        throw new AppError("Sub-Categoria não relacionada ao Livro.", 400);
-    }
+        if (!isSubCategoryRelatedToTheBook) {
+            throw new AppError("Sub-Categoria não relacionada ao Livro.", HTTPCODES.BADREQUEST);
+        }
 
-    return repository.sub_Categories_Of_Book.delete({where: {fk_sub_category_fk_book_id: {fk_book_id: idBook, fk_sub_category: idSubCategory}}});
+        return tx.sub_Categories_Of_Book.delete({where: {fk_sub_category_fk_book_id: {fk_book_id: idBook, fk_sub_category: idSubCategory}}});
+    });
 }

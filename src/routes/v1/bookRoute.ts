@@ -1,6 +1,5 @@
 import express = require("express");
 import * as bookController from "../../controllers/bookController";
-import {getSubCategories} from "../../services/bookService";
 
 const router = express.Router();
 

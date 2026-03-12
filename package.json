@@ -6,7 +6,7 @@
     "test": "tests"
   },
   "prisma": {
-    "seed": "tsx ./src/seeds/index"
+    "seed": "tsx ./database/seeds/index"
   },
   "scripts": {
     "dev": "tsx src/server.ts",
@@ -52,6 +52,7 @@
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.10",
