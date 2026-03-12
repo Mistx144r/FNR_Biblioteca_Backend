@@ -1,13 +1,12 @@
 import {Request, Response} from "express";
 import * as workerService from "../services/workerService";
 import {serializeBigInt} from "../utils/bigintSerializer";
+import {asyncHandler} from "../middlewares/asyncHandler";
 
-export async function getAll(req: Request, res: Response) {
-    try {
-        // @ts-ignore
-        const worker = await workerService.getAll(req.query.page, req.query.limit);
-        res.status(200).json(serializeBigInt(worker));
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-}
+// Entender o pq o page e limit ficam em vermelho se retirar o ts-ignore.
+const getAll = asyncHandler(async(req: Request, res: Response)=> {
+    const { page, limit } = req.query
+    // @ts-ignore
+    const worker = await workerService.getAll(page, limit);
+    res.status(200).json(serializeBigInt(worker));
+});

@@ -5,6 +5,9 @@
   "directories": {
     "test": "tests"
   },
+  "prisma": {
+    "seed": "tsx ./src/seeds/index"
+  },
   "scripts": {
     "dev": "tsx src/server.ts",
     "build": "tsc",

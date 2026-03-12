@@ -1,52 +1,79 @@
 import { Request, Response } from "express";
 import * as bookService from "../services/bookService";
-import {serializeBigInt} from "../utils/bigintSerializer";
+import { serializeBigInt } from "../utils/bigintSerializer";
+import { asyncHandler } from "../middlewares/asyncHandler";
 
-export async function getAll(req: Request, res: Response) {
-    try {
-        // @ts-ignore
-        const books = await bookService.getAll(req.query.page, req.query.limit);
-        res.status(200).json(serializeBigInt(books));
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-}
+// Main Book Functions
+export const getAll = asyncHandler(async (req: Request, res: Response) => {
+    const { page, limit } = req.query
+    // @ts-ignore
+    const books = await bookService.getAll(page, limit);
+    res.status(200).json(serializeBigInt(books));
+});
 
-export async function getById(req: Request, res: Response) {
-    try {
-        const book = await bookService.getById(req.params.id);
-        res.status(200).json(serializeBigInt(book));
-    } catch(err) {
-        if (err.message == "Livro não encontrado.") {
-            res.status(404).json({message: err.message});
-        }
-        res.status(500).json({ message: "Erro não especificado." });
-    }
-}
+export const getById = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const book = await bookService.getById(id);
+    res.status(200).json(serializeBigInt(book));
+});
 
-export async function create(req: Request, res: Response) {
-    try {
-        const newBook = await bookService.create(req.body);
-        return res.status(201).json(serializeBigInt(newBook));
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-}
+export const getBookAllInfoById = asyncHandler(async(req: Request, res:Response)=> {
+    const { id } = req.params;
+    const book = await bookService.getAllBookInfoById(id);
+    res.status(200).json(serializeBigInt(book));
+});
 
-export async function update(req: Request, res: Response) {
-    try {
-        const updatedBook = await bookService.update(req.params.id, req.body);
-        return res.status(200).json(serializeBigInt(updatedBook));
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-}
+export const create = asyncHandler(async (req: Request, res: Response) => {
+    const newBook = await bookService.create(req.body);
+    return res.status(201).json(serializeBigInt(newBook));
+});
 
-export async function deleteById(req: Request, res: Response) {
-    try {
-        const deletedBook = await bookService.deleteById(req.params.id);
-        res.status(204).json(serializeBigInt(deletedBook));
-    }   catch (err){
-        res.status(500).json({message: err.message})
-    }
-}
+export const update = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const updatedBook = await bookService.update(id, req.body);
+    return res.status(200).json(serializeBigInt(updatedBook));
+});
+
+export const deleteById = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const deletedBook = await bookService.deleteById(id);
+    res.status(204).json(serializeBigInt(deletedBook));
+});
+
+// Book Author Functions
+export const getAuthorsFromBook = asyncHandler(async (req: Request, res:Response) => {
+    const { id } = req.params;
+    const authors = await bookService.getAuthors(id);
+    res.status(200).json(serializeBigInt(authors));
+});
+
+export const addAuthorToBook = asyncHandler(async(req: Request, res: Response)=> {
+    const { idBook, idAuthor } = req.params;
+    const relation = await bookService.addAuthor(idBook, idAuthor);
+    res.status(201).json(serializeBigInt(relation));
+});
+
+export const removeAuthorToBook = asyncHandler(async(req: Request, res: Response)=> {
+    const { idBook, idAuthor } = req.params;
+    const relation = await bookService.removeAuthor(idBook, idAuthor);
+    res.status(204).json(serializeBigInt(relation));
+});
+
+// Book Sub-Category Functions
+export const getSubCategories = asyncHandler(async(req: Request, res: Response)=> {
+    const { idBook } = req.params;
+    const relation = await bookService.getSubCategories(idBook);
+    res.status(200).json(serializeBigInt(relation));
+})
+
+export const addSubCategory = asyncHandler(async(req: Request, res: Response)=> {
+    const { idBook, idSubCategory } = req.params;
+    const relation = await bookService.addSubCategory(idBook, idSubCategory);
+    res.status(201).json(serializeBigInt(relation));
+})
+
+export const removeSubCategory = asyncHandler(async(req: Request, res: Response)=> {
+    const { idBook, idSubCategory } = req.params;
+    const relation = await bookService.removeSubCategory(idBook, idSubCategory);
+    res.status(204).json(serializeBigInt(relation));
+})

@@ -1,5 +1,6 @@
 // API Basic Packages
 import { apiReference } from "@scalar/express-api-reference";
+import { errorHandler } from "./middlewares/errorHandler";
 import express = require("express");
 import cors = require("cors");
 import dotenv = require("dotenv");
@@ -21,6 +22,7 @@ app.use(
 app.use(express.json());
 app.use("/reference", apiReference({url: "/openapi.json"}));
 app.use("/api/v1/", routesV1);
+app.use(errorHandler);
 
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
