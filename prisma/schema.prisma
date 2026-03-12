@@ -126,8 +126,8 @@ model Sub_Categories_Of_Book {
   fk_sub_category           BigInt
   fk_book_id                BigInt
 
-  sub_category Sub_Category @relation(fields: [fk_sub_category], references: [id_sub_category])
-  book         Book         @relation(fields: [fk_book_id], references: [id_book])
+  sub_category Sub_Category @relation(fields: [fk_sub_category], references: [id_sub_category], onDelete: Cascade)
+  book         Book         @relation(fields: [fk_book_id], references: [id_book], onDelete: Cascade)
 
   @@unique([fk_sub_category, fk_book_id])
 }

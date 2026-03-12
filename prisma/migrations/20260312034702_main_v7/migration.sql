@@ -150,7 +150,7 @@ ALTER TABLE `Sector` ADD CONSTRAINT `Sector_fk_category_id_fkey` FOREIGN KEY (`f
 ALTER TABLE `Bookcase` ADD CONSTRAINT `Bookcase_fk_sector_id_fkey` FOREIGN KEY (`fk_sector_id`) REFERENCES `Sector`(`id_sector`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `Sub_Categories_Of_Book` ADD CONSTRAINT `Sub_Categories_Of_Book_fk_sub_category_fkey` FOREIGN KEY (`fk_sub_category`) REFERENCES `Sub_Category`(`id_sub_category`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `Sub_Categories_Of_Book` ADD CONSTRAINT `Sub_Categories_Of_Book_fk_sub_category_fkey` FOREIGN KEY (`fk_sub_category`) REFERENCES `Sub_Category`(`id_sub_category`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `Sub_Categories_Of_Book` ADD CONSTRAINT `Sub_Categories_Of_Book_fk_book_id_fkey` FOREIGN KEY (`fk_book_id`) REFERENCES `Book`(`id_book`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `Sub_Categories_Of_Book` ADD CONSTRAINT `Sub_Categories_Of_Book_fk_book_id_fkey` FOREIGN KEY (`fk_book_id`) REFERENCES `Book`(`id_book`) ON DELETE CASCADE ON UPDATE CASCADE;

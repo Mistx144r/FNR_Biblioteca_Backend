@@ -1,7 +1,9 @@
-import {Prisma, PrismaClient} from "@prisma/client";
+import {Prisma} from "@prisma/client";
+import { prisma } from "../utils/prisma";
 
-const repository = new PrismaClient();
+const repository = prisma;
 
+// Fazer uma revisao completa aqui
 export async function getAll(pageS: string = "1", limitS: string = "10") {
     const page = Number(pageS);
     const limit = Number(limitS);
@@ -64,22 +66,6 @@ export async function create(body: Prisma.WorkerCreateInput){
     return repository.worker.create({data: body});
 }
 
-export async function deleteById(idS: string | string[]) {
-    const id = Number(idS);
-
-    if (!id) {
-        throw new Error("O valor do ID não é um número ou é menor ou igual a 0.");
-    }
-
-    const worker = await repository.worker.findUnique({where: {id_worker: id}});
-
-    if (!worker) {
-        throw new Error("Funcionário não encontrado!")
-    }
-
-    return repository.worker.delete({where: {id_worker: id}})
-}
-
 export async function update(idS: string | string[], body: Prisma.WorkerUpdateInput) {
     const { name, cpf, email, cellphone } = body;
 
@@ -100,4 +86,20 @@ export async function update(idS: string | string[], body: Prisma.WorkerUpdateIn
     }
 
     return repository.worker.update({where: {id_worker: id}, data: body});
+}
+
+export async function deleteById(idS: string | string[]) {
+    const id = Number(idS);
+
+    if (!id) {
+        throw new Error("O valor do ID não é um número ou é menor ou igual a 0.");
+    }
+
+    const worker = await repository.worker.findUnique({where: {id_worker: id}});
+
+    if (!worker) {
+        throw new Error("Funcionário não encontrado!")
+    }
+
+    return repository.worker.delete({where: {id_worker: id}})
 }

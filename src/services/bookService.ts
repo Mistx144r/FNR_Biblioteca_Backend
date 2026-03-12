@@ -1,9 +1,8 @@
-import { PrismaClient, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+import { prisma } from "../utils/prisma";
 import { AppError } from "../errors/AppError";
-import pino = require("pino");
 
-const repository = new PrismaClient();
-const logger = pino();
+const repository = prisma;
 
 // Main Book Functions
 export async function getAll(pageS: string = "1", limitS: string = "10") {
@@ -11,11 +10,11 @@ export async function getAll(pageS: string = "1", limitS: string = "10") {
     const limit = Number(limitS);
 
     if (!page) {
-        throw new AppError("O valor enviado pela página não é um número ou é menor ou igual a 0.", 400);
+        throw new AppError("O valor enviado de Páginas é inválido ou igual a zero (0). 💀🔥🔥 (Erro souvenir)", 400);
     }
 
     if (!limit) {
-        throw new AppError("O valor enviado pelo limite não é um número ou é menor ou igual a 0.", 400);
+        throw new AppError("O valor enviado para o Limite é inválido ou igual a zero (0). 💀🔥🔥 (Erro souvenir)", 400);
     }
 
     const skip = (page - 1) * limit;
@@ -46,7 +45,7 @@ export async function getById(idBookS: string | string[]) {
     const idBook = Number(Array.isArray(idBookS) ? idBookS[0] : idBookS);
 
     if (!idBook) {
-        throw new AppError("O valor do ID não é um número ou é menor ou igual a 0.", 400);
+        throw new AppError("ID do livro inválido.", 400);
     }
 
     const book = await repository.book.findUnique({where: {id_book: idBook}});
@@ -63,7 +62,7 @@ export async function getAllBookInfoById(idBookS: string | string[]) {
     const idBook = Number(Array.isArray(idBookS) ? idBookS[0] : idBookS);
 
     if (!idBook) {
-        throw new AppError("O valor do ID não é um número ou é menor ou igual a 0.", 400);
+        throw new AppError("ID do livro inválido.", 400);
     }
 
     const [book, authors, subCategories] = await Promise.all([
@@ -88,11 +87,11 @@ export async function create(body: Prisma.BookCreateInput){
     }
 
     if (!name || !isbn || !description || !publisher || !language || !edition || !pages || !bookcover) {
-        throw new AppError("Dados insuficientes para atualização do funcionário.", 400);
+        throw new AppError("Dados insuficientes para atualização do Livro.", 400);
     }
 
     if (!categoryId) {
-        throw new AppError("O valor do ID não é um número ou é menor ou igual a 0.", 400);
+        throw new AppError("ID da Categoria inválido.", 400);
     }
 
     const bookAlreadyExistsWithISBN = await repository.book.findUnique({where: {isbn: isbn}});
@@ -132,11 +131,11 @@ export async function update(idBookS: string | string[], body: Prisma.BookUpdate
     }
 
     if (!idBook) {
-        throw new AppError("O valor do ID não é um número ou é menor ou igual a 0.", 400);
+        throw new AppError("ID do Livro inválido.", 400);
     }
 
     if (!categoryId) {
-        throw new AppError("O valor do ID não é um número ou é menor ou igual a 0.", 400);
+        throw new AppError("ID da Categoria inválido.", 400);
     }
 
     const book = await repository.book.findUnique({where: {id_book: idBook}});
@@ -166,7 +165,7 @@ export async function deleteById(idBookS: string | string[]) {
     const idBook = Number(Array.isArray(idBookS) ? idBookS[0] : idBookS);
 
     if (!idBook) {
-        throw new AppError("O valor do ID não é um número ou é menor ou igual a 0.", 400);
+        throw new AppError("ID do livro inválido.", 400);
     }
 
     const book = await repository.book.findUnique({where: {id_book: idBook}});
@@ -202,12 +201,28 @@ export async function addAuthor(idBookS: string | string[], idAuthorS: string | 
     const idBook = Number(Array.isArray(idBookS) ? idBookS[0] : idBookS);
     const idAuthor = Number(Array.isArray(idAuthorS) ? idAuthorS[0] : idAuthorS);
 
-    if (!idBook || !idAuthor) {
-        throw new AppError("O valor do ID não é um número ou é menor ou igual a 0.", 400);
+    if (!idBook) {
+        throw new AppError("ID do livro inválido.", 400);
     }
 
-    const isAuthorAlreadyInBook =
-        await repository.authors_In_Book.findUnique({
+    if (!idAuthor) {
+        throw new AppError("ID do Autor inválido.", 400);
+    }
+
+    return repository.$transaction(async (tx) => {
+        const doesAuthorExists = await tx.author.findUnique({where: {id_author: idAuthor}});
+
+        if (!doesAuthorExists) {
+            throw new AppError("Autor não existe.", 404);
+        }
+
+        const doesBookExists = await tx.book.findUnique({where: {id_book: idBook}});
+
+        if (!doesBookExists) {
+            throw new AppError("Livro não existe.", 404);
+        }
+
+        const isAuthorAlreadyInBook = await tx.authors_In_Book.findUnique({
             where: {
                 fk_author_id_fk_book_id: {
                     fk_author_id: idAuthor,
@@ -216,19 +231,24 @@ export async function addAuthor(idBookS: string | string[], idAuthorS: string | 
             }
         });
 
-    if (isAuthorAlreadyInBook){
-        throw new AppError("Autor já relacionado ao Livro.", 400)
-    }
+        if (isAuthorAlreadyInBook) {
+            throw new AppError("Autor já relacionado ao Livro.", 400);
+        }
 
-    return repository.authors_In_Book.create({data: {fk_book_id: idBook, fk_author_id: idAuthor}});
+        return tx.authors_In_Book.create({data: {fk_book_id: idBook, fk_author_id: idAuthor}});
+    });
 }
 
 export async function removeAuthor(idBookS: string | string[], idAuthorS: string | string[]) {
     const idBook = Number(Array.isArray(idBookS) ? idBookS[0] : idBookS);
     const idAuthor = Number(Array.isArray(idAuthorS) ? idAuthorS[0] : idAuthorS);
 
-    if (!idBookS || !idAuthor) {
-        throw new AppError("O valor do ID não é um número ou é menor ou igual a 0.", 400);
+    if (!idBook) {
+        throw new AppError("ID do livro inválido.", 400);
+    }
+
+    if (!idAuthor) {
+        throw new AppError("ID do Autor inválido.", 400);
     }
 
     const isAuthorAlreadyInBook =
@@ -252,8 +272,8 @@ export async function removeAuthor(idBookS: string | string[], idAuthorS: string
 export async function getSubCategories(idBookS: string | string[]) {
     const idBook = Number(Array.isArray(idBookS) ? idBookS[0] : idBookS);
 
-    if (!idBookS) {
-        throw new AppError("O valor do ID não é um número ou é menor ou igual a 0.", 400);
+    if (!idBook) {
+        throw new AppError("ID do Livro inválido.", 400);
     }
 
     const subcategories = await repository.sub_Categories_Of_Book.findMany({
@@ -272,42 +292,55 @@ export async function addSubCategory(idBookS: string | string[], idSubCategoryS:
     const idBook = Number(Array.isArray(idBookS) ? idBookS[0] : idBookS);
     const idSubCategory = Number(Array.isArray(idSubCategoryS) ? idSubCategoryS[0] : idSubCategoryS);
 
-    console.log(idSubCategoryS);
-    console.log(idSubCategory);
-
-    if (!idBookS || !idSubCategory) {
-        throw new AppError("O valor do ID não é um número ou é menor ou igual a 0.", 400);
+    if (!idBook) {
+        throw new AppError("ID do livro inválido.", 400);
     }
 
-    const doesCategoryExists = await repository.sub_Category.findUnique({where: {id_sub_category: idSubCategory}});
-
-    if (!doesCategoryExists) {
-        throw new AppError("Categoria não existe.", 400);
+    if (!idSubCategory) {
+        throw new AppError("ID da Sub Categoria inválida.", 400);
     }
 
-    const isSubCategoryAlreadyInBook =
-        await repository.sub_Categories_Of_Book.findUnique({
-            where: {
-                fk_sub_category_fk_book_id: {
-                    fk_book_id: idBook,
-                    fk_sub_category: idSubCategory
+    return repository.$transaction(async (tx) => {
+        const doesBookExists = await tx.book.findUnique({where: {id_book: idBook}});
+
+        if (!doesBookExists) {
+            throw new AppError("Livro não existe.", 404);
+        }
+
+        const doesSubCategoryExists = await tx.sub_Category.findUnique({where: {id_sub_category: idSubCategory}});
+
+        if (!doesSubCategoryExists) {
+            throw new AppError("Sub-Categoria não existe.", 404);
+        }
+
+        const isSubCategoryAlreadyInBook =
+            await repository.sub_Categories_Of_Book.findUnique({
+                where: {
+                    fk_sub_category_fk_book_id: {
+                        fk_book_id: idBook,
+                        fk_sub_category: idSubCategory
+                    }
                 }
-            }
-        });
+            });
 
-    if (isSubCategoryAlreadyInBook) {
-        throw new AppError("Sub-Categoria já relacionada ao Livro.", 400);
-    }
+        if (isSubCategoryAlreadyInBook) {
+            throw new AppError("Sub-Categoria já relacionada ao Livro.", 400);
+        }
 
-    return repository.sub_Categories_Of_Book.create({data: {fk_book_id: idBook, fk_sub_category: idSubCategory}});
+        return tx.sub_Categories_Of_Book.create({data: {fk_book_id: idBook, fk_sub_category: idSubCategory}});
+    });
 }
 
 export async function removeSubCategory(idBookS: string | string[], idSubCategoryS: string | string[]) {
     const idBook = Number(Array.isArray(idBookS) ? idBookS[0] : idBookS);
     const idSubCategory = Number(Array.isArray(idSubCategoryS) ? idSubCategoryS[0] : idSubCategoryS);
 
-    if (!idBookS || !idSubCategory) {
-        throw new AppError("O valor do ID não é um número ou é menor ou igual a 0.", 400);
+    if (!idBook) {
+        throw new AppError("ID do Livro inválido.", 400);
+    }
+
+    if (!idSubCategory) {
+        throw new AppError("ID da Sub-Categoria inválido.", 400);
     }
 
     const isSubCategoryAlreadyInBook =

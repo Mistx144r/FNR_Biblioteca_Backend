@@ -1,7 +1,9 @@
-import { PrismaClient, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+import { prisma } from "../utils/prisma";
 
-const repository = new PrismaClient();
+const repository = prisma;
 
+// Fazer outra revisao de codigo aq
 // Talvez Adicionar Uma Paginação
 export async function getAll() {
     return repository.author.findMany();

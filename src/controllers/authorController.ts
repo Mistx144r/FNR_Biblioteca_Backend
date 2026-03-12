@@ -2,10 +2,12 @@ import { Request, Response } from "express";
 import * as authorService from "../services/authorService";
 import {serializeBigInt} from "../utils/bigintSerializer";
 
+// Fazer uma revisao total nesse codigo.
+
 export async function getAll(req: Request, res: Response) {
     try {
         // @ts-ignore
-        const books = await authorService.getAll(req.query.page, req.query.limit);
+        const books = await authorService.getAll();
         res.status(200).json(serializeBigInt(books));
     } catch (err) {
         res.status(500).json({ message: err.message });
