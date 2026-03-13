@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { createBookSchema, updateBookSchema } from "../schemas/bookSchema";
 import { serializeBigInt } from "../utils/bigintSerializer";
 import { asyncHandler } from "../middlewares/asyncHandler";
 import { HTTPCODES } from "../utils/httpCodes";
@@ -25,13 +26,15 @@ export const getBookAllInfoById = asyncHandler(async(req: Request, res:Response)
 });
 
 export const create = asyncHandler(async (req: Request, res: Response) => {
-    const newBook = await bookService.create(req.body);
+    const body = createBookSchema.parse(req.body);
+    const newBook = await bookService.create(body);
     return res.status(HTTPCODES.CREATED).json(serializeBigInt(newBook));
 });
 
 export const update = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const updatedBook = await bookService.update(id, req.body);
+    const body = updateBookSchema.parse(req.body);
+    const updatedBook = await bookService.update(id, body);
     return res.status(HTTPCODES.OK).json(serializeBigInt(updatedBook));
 });
 

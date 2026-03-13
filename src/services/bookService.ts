@@ -1,7 +1,11 @@
-import { Prisma } from "@prisma/client";
+import { z } from "zod";
+import { createBookSchema, updateBookSchema } from "../schemas/bookSchema";
 import { prisma } from "../utils/prisma";
 import { AppError } from "../errors/AppError";
 import { HTTPCODES } from "../utils/httpCodes";
+
+type CreateBookDTO = z.infer<typeof createBookSchema>;
+type UpdateBookDTO = z.infer<typeof updateBookSchema>;
 
 const repository = prisma;
 
@@ -58,7 +62,6 @@ export async function getById(idBookS: string | string[]) {
     return book;
 }
 
-// Retorna todos os dados de um Livro (Dados Padroes, Autor, Sub-Categorias)
 export async function getAllBookInfoById(idBookS: string | string[]) {
     const idBook = Number(Array.isArray(idBookS) ? idBookS[0] : idBookS);
 
@@ -79,15 +82,11 @@ export async function getAllBookInfoById(idBookS: string | string[]) {
     };
 }
 
-export async function create(body: Prisma.BookCreateInput){
-    const { name, isbn, description, publisher, language, edition, pages, bookcover, category } = body;
+export async function create(body: CreateBookDTO){
+    const { name, isbn, description, publisher, language, edition, pages, category } = body;
     const categoryId = Number(Array.isArray(category) ? category[0] : category);
 
-    if (body.id_book) {
-        delete body.id_book;
-    }
-
-    if (!name || !isbn || !description || !publisher || !language || !edition || !pages || !bookcover) {
+    if (!name || !isbn || !description || !publisher || !language || !edition || !pages) {
         throw new AppError("Dados insuficientes para atualização do Livro.", HTTPCODES.BADREQUEST);
     }
 
@@ -120,24 +119,16 @@ export async function create(body: Prisma.BookCreateInput){
     })
 }
 
-export async function update(idBookS: string | string[], body: Prisma.BookUpdateInput) {
-    const { category } = body;
+export async function update(idBookS: string | string[], body: UpdateBookDTO) {
+    const { category, published_at, ...rest } = body;
     const idBook = Number(Array.isArray(idBookS) ? idBookS[0] : idBookS);
-    const categoryId = Number(Array.isArray(category) ? category[0] : category);
-
-    if (body.id_book) {
-        delete body.id_book;
-    }
-
-    if (body.created_at) {
-        delete body.created_at;
-    }
+    const categoryId = body.category;
 
     if (!idBook) {
         throw new AppError("ID do Livro inválido.", HTTPCODES.BADREQUEST);
     }
 
-    if (!categoryId) {
+    if (body.category !== undefined && !categoryId) {
         throw new AppError("ID da Categoria inválido.", HTTPCODES.BADREQUEST);
     }
 
@@ -148,19 +139,36 @@ export async function update(idBookS: string | string[], body: Prisma.BookUpdate
             throw new AppError("Livro não encontrado.", HTTPCODES.NOTFOUND);
         }
 
-        const doesCategoryExists = await tx.category.findUnique({where: {id_category: categoryId}});
+        if (categoryId) {
+            const doesCategoryExists = await tx.category.findUnique({where: {id_category: categoryId}});
 
-        if (!doesCategoryExists) {
-            throw new AppError("Categoria não encontrada.", HTTPCODES.NOTFOUND);
+            if (!doesCategoryExists) {
+                throw new AppError("Categoria não encontrada.", HTTPCODES.NOTFOUND);
+            }
+        }
+
+        if (body.isbn) {
+            const doesBookAlreadyExistsWithThisISBN = await tx.book.findUnique({ where: { isbn: body.isbn as string } });
+
+            if (doesBookAlreadyExistsWithThisISBN && Number(doesBookAlreadyExistsWithThisISBN.id_book) !== idBook) {
+                throw new AppError("Livro já existe com esse ISBN.", HTTPCODES.BADREQUEST);
+            }
+        }
+
+        if (body.published_at !== undefined) {
+            const date = new Date(body.published_at as string);
+
+            if (isNaN(date.getTime())) {
+                throw new AppError("A data enviada é inválida.", HTTPCODES.BADREQUEST);
+            }
         }
 
         return tx.book.update({
-            where: {id_book: idBook}, data: {
-                ...body,
-                published_at: new Date(body.published_at as string),
-                category: {
-                    connect: { id_category: categoryId }
-                }
+            where: { id_book: idBook },
+            data: {
+                ...rest,
+                ...(published_at && { published_at: new Date(published_at) }),
+                ...(categoryId && { category: { connect: { id_category: categoryId } } })
             }
         });
     });

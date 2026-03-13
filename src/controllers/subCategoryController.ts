@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { createSubCategorySchema, updateSubCategorySchema } from "../schemas/subCategorySchema";
 import { serializeBigInt } from "../utils/bigintSerializer";
 import { asyncHandler } from "../middlewares/asyncHandler";
 import { HTTPCODES } from "../utils/httpCodes";
@@ -16,13 +17,15 @@ export const getById = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const create = asyncHandler(async (req: Request, res: Response) => {
-    const newSubCategory = await subCategoryService.create(req.body);
+    const body = createSubCategorySchema.parse(req.body);
+    const newSubCategory = await subCategoryService.create(body);
     return res.status(HTTPCODES.CREATED).json(serializeBigInt(newSubCategory));
 });
 
 export const update = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const updatedSubCategory = await subCategoryService.update(id, req.body);
+    const body = updateSubCategorySchema.parse(req.body);
+    const updatedSubCategory = await subCategoryService.update(id, body);
     return res.status(HTTPCODES.OK).json(serializeBigInt(updatedSubCategory));
 });
 

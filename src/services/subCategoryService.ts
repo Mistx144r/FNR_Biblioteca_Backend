@@ -1,7 +1,11 @@
-import { Prisma } from "@prisma/client";
+import { z } from "zod";
+import { createSubCategorySchema, updateSubCategorySchema } from "../schemas/subCategorySchema";
 import { prisma } from "../utils/prisma";
 import { AppError } from "../errors/AppError";
 import { HTTPCODES } from "../utils/httpCodes";
+
+type CreateSubCategoryDTO = z.infer<typeof createSubCategorySchema>;
+type UpdateSubCategoryDTO = z.infer<typeof updateSubCategorySchema>;
 
 const repository = prisma;
 
@@ -25,11 +29,7 @@ export async function getById(subCategoryIdS: string | string[]) {
     return subCategory;
 }
 
-export async function create(body: Prisma.Sub_CategoryCreateInput) {
-    if (body.id_sub_category) {
-        delete body.id_sub_category;
-    }
-
+export async function create(body: CreateSubCategoryDTO) {
     if (!body.name) {
         throw new AppError("O nome da Sub-Categoria está faltando.", HTTPCODES.BADREQUEST);
     }
@@ -45,15 +45,17 @@ export async function create(body: Prisma.Sub_CategoryCreateInput) {
     return repository.sub_Category.create({data: body});
 }
 
-export async function update(subCategoryIdS: string | string[] ,body: Prisma.Sub_CategoryCreateInput) {
+export async function update(subCategoryIdS: string | string[] ,body: UpdateSubCategoryDTO) {
     const subCategoryId = Number(Array.isArray(subCategoryIdS) ? subCategoryIdS[0] : subCategoryIdS);
-
-    if (body.id_sub_category) {
-        delete body.id_sub_category;
-    }
 
     if (!subCategoryId) {
         throw new AppError("ID da Sub-Categoria inválido.", HTTPCODES.BADREQUEST);
+    }
+
+    const alreadyExists = await repository.sub_Category.findFirst({where: {name: body.name}});
+
+    if (alreadyExists && Number(alreadyExists.id_sub_category) !== subCategoryId) {
+        throw new AppError("Sub-Categoria já existe.", HTTPCODES.BADREQUEST);
     }
 
     const subCategory = await repository.sub_Category.findUnique({where: {id_sub_category: subCategoryId}});

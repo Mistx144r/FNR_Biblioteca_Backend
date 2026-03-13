@@ -1,7 +1,11 @@
-import { Prisma } from "@prisma/client";
+import { z } from "zod";
+import { createAuthorSchema, updateAuthorSchema } from "../schemas/authorSchema";
 import { prisma } from "../utils/prisma";
 import { AppError } from "../errors/AppError";
 import { HTTPCODES } from "../utils/httpCodes";
+
+type CreateAuthorDTO = z.infer<typeof createAuthorSchema>;
+type UpdateAuthorDTO = z.infer<typeof updateAuthorSchema>;
 
 const repository = prisma;
 
@@ -26,13 +30,9 @@ export async function getById(authorIdS: string | string[]) {
     return author;
 }
 
-export async function create(body: Prisma.AuthorCreateInput)  {
-    if (body.id_author) {
-        delete body.id_author;
-    }
-
+export async function create(body: CreateAuthorDTO)  {
     if (!body.name) {
-        throw new Error("O nome do Autor está faltando.")
+        throw new AppError("O nome do Autor está faltando.", HTTPCODES.BADREQUEST);
     }
 
     const alreadyExists = await repository.author.findFirst({
@@ -46,19 +46,21 @@ export async function create(body: Prisma.AuthorCreateInput)  {
     return repository.author.create({data: body});
 }
 
-export async function update(authorIdS: string | string[], body: Prisma.AuthorUpdateInput) {
-    if (body.id_author) {
-        delete body.id_author;
-    }
-
+export async function update(authorIdS: string | string[], body: UpdateAuthorDTO) {
     if (!body.name) {
-        throw new Error("O nome do Autor está faltando.")
+        throw new AppError("O nome do Autor está faltando.", HTTPCODES.BADREQUEST);
     }
 
     const authorId = Number(Array.isArray(authorIdS) ? authorIdS[0] : authorIdS);
 
     if (!authorId) {
         throw new AppError("ID do Autor inválido.", HTTPCODES.BADREQUEST);
+    }
+
+    const alreadyExists = await repository.author.findFirst({where: {name: body.name}});
+
+    if (alreadyExists && Number(alreadyExists.id_author) !== authorId) {
+        throw new AppError("Autor já existe.", HTTPCODES.BADREQUEST);
     }
 
     const author = await repository.author.findUnique({where: {id_author: authorId}});
