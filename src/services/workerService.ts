@@ -19,7 +19,7 @@ const repository = prisma;
 //================================
 // 1. Talvez Adicionar Uma Verificao De Telefone.
 // 2. Depois fazer um Code Review para procurar por erros.
-// 3. Fazer a funcao de logout a partir de um middleware.
+// 3. Fazer a funcao de logout passando por um middleware para saber os dados do user.
 
 //================================
 // Utils
