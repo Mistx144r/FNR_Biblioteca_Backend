@@ -4,10 +4,10 @@ import { errorHandler } from "./middlewares/errorHandler";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import logger from "./utils/logger";
 
 // API Routes Versions
 import routesV1 from "./routes/v1";
-
 dotenv.config();
 
 export const app = express();
@@ -25,5 +25,5 @@ app.use("/api/v1/", routesV1);
 app.use(errorHandler);
 
 app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+    logger.info(`O Servidor esta rodando: http://localhost:${PORT}`);
 });

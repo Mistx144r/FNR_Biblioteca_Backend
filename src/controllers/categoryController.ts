@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import {createCategorySchema, updateCategorySchema} from "../schemas/categorySchema";
-import { serializeBigInt } from "../utils/bigintSerializer";
+import { serializeBigInt } from "../utils/utils";
 import { asyncHandler } from "../middlewares/asyncHandler";
 import { HTTPCODES } from "../utils/httpCodes";
 import * as categoryService from "../services/categoryService";

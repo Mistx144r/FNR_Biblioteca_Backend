@@ -1,20 +1,80 @@
 import { z } from "zod";
+import { Book } from "@prisma/client";
 import { createBookSchema, updateBookSchema } from "../schemas/bookSchema";
 import { prisma } from "../utils/prisma";
+import { redis } from "../utils/redis";
+import { serializeBigInt, returnNumberedID } from "../utils/utils";
 import { AppError } from "../errors/AppError";
 import { HTTPCODES } from "../utils/httpCodes";
 
 type CreateBookDTO = z.infer<typeof createBookSchema>;
 type UpdateBookDTO = z.infer<typeof updateBookSchema>;
+type PaginatedReturnData = {
+    data: Book[],
+    meta: {
+        total: number
+        pages: number
+        limit: number
+        totalPages: number
+        hasNextPage: boolean,
+        hasPreviousPage: boolean
+    }
+}
 
 const repository = prisma;
 
+//================================
+// Utils
+//================================
+function haveAllRequiredData(data: UpdateBookDTO) {
+    const { name, isbn, description, publisher, language, edition, pages, category } = data;
+    return !(!name || !isbn || !description || !publisher || !language || !edition || !pages || !category);
+}
+
+//================================
+// Single Book Caching
+//================================
+function isBookInCache(bookId: number) {
+    return redis.exists(`${process.env.NODE_ENV}:Book:${bookId}`);
+}
+
+function saveBookInCache(bookId: number, data: Book) {
+    return redis.multi().set(`${process.env.NODE_ENV}:Book:${bookId}`, JSON.stringify(serializeBigInt(data))).expire(`${process.env.NODE_ENV}:Book:${bookId}`, 1800).exec();
+}
+
+async function returnCachedBook(bookId: number) {
+    const data = await redis.get(`${process.env.NODE_ENV}:Book:${bookId}`);
+    return JSON.parse(data!);
+}
+
+function invalidateCachedBook(bookId: number) {
+    return redis.del(`${process.env.NODE_ENV}:Book:${bookId}`);
+}
+
+//================================
+// Paginated Books Caching
+//================================
+function isPaginatedBooksInCache(page: number, limit: number) {
+    return redis.exists(`${process.env.NODE_ENV}:Book:${page}:${limit}`);
+}
+
+function savePaginatedBooksInCache(pages: number, limit: number, data: PaginatedReturnData) {
+    return redis.multi().set(`${process.env.NODE_ENV}:Book:${pages}:${limit}`, JSON.stringify(serializeBigInt(data))).expire(`${process.env.NODE_ENV}:Book:${pages}:${limit}`, 900).exec();
+}
+
+async function returnCachedPaginatedBooks(page: number, limit: number) {
+    const data = await redis.get(`${process.env.NODE_ENV}:Book:${page}:${limit}`);
+    return JSON.parse(data!); // A Exclamacao avisa que os dados podem estar nulos.
+}
+
+//================================
 // Main Book Functions
+//================================
 export async function getAll(pageS: string = "1", limitS: string = "10") {
-    const page = Number(pageS);
+    const pages = Number(pageS);
     const limit = Number(limitS);
 
-    if (!page) {
+    if (!pages) {
         throw new AppError("O valor enviado de Páginas é inválido ou igual a zero (0). 💀🔥🔥 (Erro souvenir)", HTTPCODES.BADREQUEST);
     }
 
@@ -22,7 +82,15 @@ export async function getAll(pageS: string = "1", limitS: string = "10") {
         throw new AppError("O valor enviado para o Limite é inválido ou igual a zero (0). 💀🔥🔥 (Erro souvenir)", HTTPCODES.BADREQUEST);
     }
 
-    const skip = (page - 1) * limit;
+    if ((pages > 50 || pages < 0) || (limit > 50 || limit < 0)) {
+        throw new AppError("O valor das Páginas ou Limite não pode ser maior que 50 ou menor que zero (0)", HTTPCODES.BADREQUEST);
+    }
+
+    const skip = (pages - 1) * limit;
+
+    if (await isPaginatedBooksInCache(pages, limit)) {
+        return await returnCachedPaginatedBooks(pages, limit);
+    }
 
     const [books, total] = await Promise.all([
         repository.book.findMany({
@@ -33,42 +101,46 @@ export async function getAll(pageS: string = "1", limitS: string = "10") {
         repository.book.count()
     ]);
 
-    return {
+    const data = {
         data: books,
         meta: {
             total,
-            page,
+            pages,
             limit,
             totalPages: Math.ceil(total / limit),
-            hasNextPage: page < Math.ceil(total / limit),
-            hasPreviousPage: page > 1
+            hasNextPage: pages < Math.ceil(total / limit),
+            hasPreviousPage: pages > 1
         }
-    };
+    }
+
+    await savePaginatedBooksInCache(pages, limit, data);
+
+    return data;
 }
 
 export async function getById(idBookS: string | string[]) {
-    const idBook = Number(Array.isArray(idBookS) ? idBookS[0] : idBookS);
+    const bookId = returnNumberedID(idBookS);
 
-    if (!idBook) {
+    if (!bookId) {
         throw new AppError("ID do livro inválido.", HTTPCODES.BADREQUEST);
     }
 
-    const book = await repository.book.findUnique({where: {id_book: idBook}});
+    if (await isBookInCache(bookId)) {
+        return returnCachedBook(bookId);
+    }
+
+    const book = await repository.book.findUnique({where: {id_book: bookId}});
 
     if (!book) {
         throw new AppError("Livro não encontrado.", HTTPCODES.NOTFOUND);
     }
 
+    await saveBookInCache(bookId, book);
+
     return book;
 }
 
 export async function getAllBookInfoById(idBookS: string | string[]) {
-    const idBook = Number(Array.isArray(idBookS) ? idBookS[0] : idBookS);
-
-    if (!idBook) {
-        throw new AppError("ID do Livro inválido.", HTTPCODES.BADREQUEST);
-    }
-
     const [book, authors, subCategories] = await Promise.all([
         getById(idBookS),
         getAuthors(idBookS),
@@ -83,11 +155,11 @@ export async function getAllBookInfoById(idBookS: string | string[]) {
 }
 
 export async function create(body: CreateBookDTO){
-    const { name, isbn, description, publisher, language, edition, pages, category } = body;
-    const categoryId = Number(Array.isArray(category) ? category[0] : category);
+    const { isbn, category } = body;
+    const categoryId = category;
 
-    if (!name || !isbn || !description || !publisher || !language || !edition || !pages) {
-        throw new AppError("Dados insuficientes para atualização do Livro.", HTTPCODES.BADREQUEST);
+    if (!haveAllRequiredData(body)) {
+        throw new AppError("Dados insuficientes para a criação do Livro.", HTTPCODES.BADREQUEST);
     }
 
     if (!categoryId) {
@@ -121,7 +193,7 @@ export async function create(body: CreateBookDTO){
 
 export async function update(idBookS: string | string[], body: UpdateBookDTO) {
     const { category, published_at, ...rest } = body;
-    const idBook = Number(Array.isArray(idBookS) ? idBookS[0] : idBookS);
+    const idBook = returnNumberedID(idBookS);
     const categoryId = body.category;
 
     if (!idBook) {
@@ -163,7 +235,7 @@ export async function update(idBookS: string | string[], body: UpdateBookDTO) {
             }
         }
 
-        return tx.book.update({
+        const updatedBook = tx.book.update({
             where: { id_book: idBook },
             data: {
                 ...rest,
@@ -171,11 +243,17 @@ export async function update(idBookS: string | string[], body: UpdateBookDTO) {
                 ...(categoryId && { category: { connect: { id_category: categoryId } } })
             }
         });
+
+        if (await isBookInCache(idBook)) {
+            await invalidateCachedBook(idBook);
+        }
+
+        return updatedBook;
     });
 }
 
 export async function deleteById(idBookS: string | string[]) {
-    const idBook = Number(Array.isArray(idBookS) ? idBookS[0] : idBookS);
+    const idBook = returnNumberedID(idBookS);
 
     if (!idBook) {
         throw new AppError("ID do Livro inválido.", HTTPCODES.BADREQUEST);
@@ -187,12 +265,18 @@ export async function deleteById(idBookS: string | string[]) {
         throw new AppError("Livro não encontrado.", HTTPCODES.NOTFOUND);
     }
 
-    return repository.book.delete({where: {id_book: idBook}});
+    const deletedBook = await repository.book.delete({where: {id_book: idBook}});
+    if (await isBookInCache(idBook)) {
+        await invalidateCachedBook(idBook);
+    }
+    return deletedBook;
 }
 
+//================================
 // Book Author Functions
+//================================
 export async function getAuthors(idBookS: string | string[]) {
-    const idBook = Number(Array.isArray(idBookS) ? idBookS[0] : idBookS);
+    const idBook = returnNumberedID(idBookS);
 
     if (!idBook) {
         throw new AppError("ID do Livro inválido.", HTTPCODES.BADREQUEST);
@@ -211,8 +295,8 @@ export async function getAuthors(idBookS: string | string[]) {
 }
 
 export async function addAuthor(idBookS: string | string[], idAuthorS: string | string[]) {
-    const idBook = Number(Array.isArray(idBookS) ? idBookS[0] : idBookS);
-    const idAuthor = Number(Array.isArray(idAuthorS) ? idAuthorS[0] : idAuthorS);
+    const idBook = returnNumberedID(idBookS);
+    const idAuthor = returnNumberedID(idAuthorS);
 
     if (!idBook) {
         throw new AppError("ID do Livro inválido.", HTTPCODES.BADREQUEST);
@@ -253,8 +337,8 @@ export async function addAuthor(idBookS: string | string[], idAuthorS: string | 
 }
 
 export async function removeAuthor(idBookS: string | string[], idAuthorS: string | string[]) {
-    const idBook = Number(Array.isArray(idBookS) ? idBookS[0] : idBookS);
-    const idAuthor = Number(Array.isArray(idAuthorS) ? idAuthorS[0] : idAuthorS);
+    const idBook = returnNumberedID(idBookS);
+    const idAuthor = returnNumberedID(idAuthorS);
 
     if (!idBook) {
         throw new AppError("ID do Livro inválido.", HTTPCODES.BADREQUEST);
@@ -294,9 +378,11 @@ export async function removeAuthor(idBookS: string | string[], idAuthorS: string
     });
 }
 
+//================================
 // Book Sub-Category Functions
+//================================
 export async function getSubCategories(idBookS: string | string[]) {
-    const idBook = Number(Array.isArray(idBookS) ? idBookS[0] : idBookS);
+    const idBook = returnNumberedID(idBookS);
 
     if (!idBook) {
         throw new AppError("ID do Livro inválido.", HTTPCODES.BADREQUEST);
@@ -315,8 +401,8 @@ export async function getSubCategories(idBookS: string | string[]) {
 }
 
 export async function addSubCategory(idBookS: string | string[], idSubCategoryS: string | string[]) {
-    const idBook = Number(Array.isArray(idBookS) ? idBookS[0] : idBookS);
-    const idSubCategory = Number(Array.isArray(idSubCategoryS) ? idSubCategoryS[0] : idSubCategoryS);
+    const idBook = returnNumberedID(idBookS);
+    const idSubCategory = returnNumberedID(idSubCategoryS);
 
     if (!idBook) {
         throw new AppError("ID do Livro inválido.", HTTPCODES.BADREQUEST);
@@ -358,8 +444,8 @@ export async function addSubCategory(idBookS: string | string[], idSubCategoryS:
 }
 
 export async function removeSubCategory(idBookS: string | string[], idSubCategoryS: string | string[]) {
-    const idBook = Number(Array.isArray(idBookS) ? idBookS[0] : idBookS);
-    const idSubCategory = Number(Array.isArray(idSubCategoryS) ? idSubCategoryS[0] : idSubCategoryS);
+    const idBook = returnNumberedID(idBookS);
+    const idSubCategory = returnNumberedID(idSubCategoryS);
 
     if (!idBook) {
         throw new AppError("ID do Livro inválido.", HTTPCODES.BADREQUEST);

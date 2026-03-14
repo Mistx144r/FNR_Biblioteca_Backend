@@ -3,5 +3,6 @@ export enum HTTPCODES {
     CREATED = 201,
     NOCONTENT = 204,
     BADREQUEST = 400,
+    UNAUTHORIZED = 401,
     NOTFOUND = 404,
 }

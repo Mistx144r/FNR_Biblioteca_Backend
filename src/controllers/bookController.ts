@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { createBookSchema, updateBookSchema } from "../schemas/bookSchema";
-import { serializeBigInt } from "../utils/bigintSerializer";
+import { serializeBigInt } from "../utils/utils";
 import { asyncHandler } from "../middlewares/asyncHandler";
 import { HTTPCODES } from "../utils/httpCodes";
 import * as bookService from "../services/bookService";

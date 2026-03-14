@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum condition {
@@ -19,10 +20,11 @@ enum condition {
 model Worker {
   id_worker    BigInt         @id @default(autoincrement())
   name         String         @db.VarChar(255)
-  cpf          String         @unique @db.VarChar(11)
+  cpf          String         @unique @db.VarChar(14)
+  password     String         @db.Text
   email        String         @unique @db.VarChar(255)
-  telephone    String?        @db.VarChar(8) // Nullable
-  cellphone    String         @db.VarChar(13)
+  telephone    String?        @db.VarChar(9) // Nullable
+  cellphone    String         @db.VarChar(15)
   created_at   DateTime       @default(now())
   updated_at   DateTime       @default(now())
   Worker_Roles Worker_Roles[]
@@ -41,6 +43,8 @@ model Worker_Roles {
 
   role   Roles  @relation(fields: [fk_role_id], references: [id_roles])
   worker Worker @relation(fields: [fk_worker_id], references: [id_worker])
+
+  @@unique([fk_role_id, fk_worker_id])
 }
 
 model Book {
@@ -52,7 +56,7 @@ model Book {
   language       String   @db.VarChar(5)
   fk_category_id BigInt   @db.BigInt
   edition        Int      @db.SmallInt
-  pages          Int?     @db.Int // Nullable
+  pages          Int?     @db.Integer // Nullable
   bookcover      String?  @db.Text // Nullable
   published_at   DateTime @db.Date
   created_at     DateTime @default(now())

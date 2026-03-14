@@ -5,3 +5,7 @@ export function serializeBigInt(data: unknown) {
         )
     );
 }
+
+export function returnNumberedID(idS: string | string[]) {
+    return Number(Array.isArray(idS) ? idS[0] : idS);
+}
