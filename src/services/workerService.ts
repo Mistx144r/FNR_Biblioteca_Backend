@@ -1,10 +1,11 @@
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken";
 import { z } from "zod";
+import { WorkerJwtPayload } from "../types/jwt/jwt";
 import { createWorkerSchema, loginWorkerSchema, updateWorkerSchema } from "../schemas/workerSchema";
 import { prisma } from "../utils/prisma";
 import { returnNumberedID, serializeBigInt } from "../utils/utils";
-import { storeWorkerJWT } from "../utils/workerRedis";
+import { isWorkerRefreshTokenValid, revokeWorkerTokens, storeWorkerRefreshJWT } from "../utils/workerRedis";
 import { AppError } from "../errors/AppError";
 import { HTTPCODES } from "../utils/httpCodes";
 
@@ -17,9 +18,10 @@ const repository = prisma;
 //================================
 // Reminders
 //================================
-// 1. Talvez Adicionar Uma Verificao De Telefone.
+// 1. Talvez Adicionar Uma Verificação De Telefone.
 // 2. Depois fazer um Code Review para procurar por erros.
-// 3. Fazer a funcao de logout passando por um middleware para saber os dados do user.
+// 3. Fazer a função de logout passando por um middleware para saber os dados do user. --Done
+// 4. ...
 
 //================================
 // Utils
@@ -56,7 +58,18 @@ function isCPFValid(unverifiedCPF: string): boolean {
 // Main Worker Functions
 //================================
 export async function getAll() {
-    return prisma.worker.findMany();
+    return prisma.worker.findMany({
+        select: {
+            id_worker: true,
+            name: true,
+            email: true,
+            cpf: true,
+            cellphone: true,
+            telephone: true,
+            created_at: true,
+            updated_at: true
+        }
+    });
 }
 
 export async function getById(workerIdS: string | string[]) {
@@ -66,7 +79,22 @@ export async function getById(workerIdS: string | string[]) {
         throw new AppError("ID do Funcionário inválido.", HTTPCODES.BADREQUEST);
     }
 
-    const worker = await repository.worker.findUnique({where: {id_worker: workerId}});
+    const worker = await repository.worker.findUnique({
+        where: {
+            id_worker: workerId
+        },
+
+        select: {
+            id_worker: true,
+            name: true,
+            email: true,
+            cpf: true,
+            cellphone: true,
+            telephone: true,
+            created_at: true,
+            updated_at: true
+        }
+    });
 
     if (!worker) {
         throw new AppError("Funcionário não encontrado.", HTTPCODES.NOTFOUND);
@@ -268,7 +296,7 @@ export async function removeRole(workerIdS: string | string[], roleIdS: string |
 //================================
 export async function login(body: LoginWorkerDTO) {
     const { email, password } = body;
-    const worker = await repository.worker.findFirst({where: {email: email}});
+    const worker = await repository.worker.findFirst({where: { email: email }, include: {Worker_Roles: {include: {role: true}}}});
 
     if (!worker) {
         throw new AppError("Funcionário não encontrado.", HTTPCODES.NOTFOUND);
@@ -280,13 +308,46 @@ export async function login(body: LoginWorkerDTO) {
         throw new AppError("Dados de login inválidos.", HTTPCODES.UNAUTHORIZED);
     }
 
-    const userToken = jwt.sign({
+    const gotRoles = await getRoles(String(worker.id_worker));
+    const organizedRoles = gotRoles.map(r => r.name);
+
+    const accessToken = jwt.sign({
         id: serializeBigInt(worker.id_worker),
         name: worker.name,
-        email: worker.email
-    }, String(process.env.JWTSECRETKEY), {expiresIn: "8h"});
+        roles: organizedRoles
+    }, String(process.env.JWTSECRETKEY), {expiresIn: "10m"});
 
-    await storeWorkerJWT(serializeBigInt(worker.id_worker), userToken);
+    const refreshToken = jwt.sign({
+        id: serializeBigInt(worker.id_worker),
+        roles: organizedRoles
+    }, String(process.env.JWTSECRETKEY), {expiresIn: "7d"});
 
-    return userToken
+    await storeWorkerRefreshJWT(serializeBigInt(worker.id_worker), refreshToken);
+
+    return { accessToken, refreshToken }
+}
+
+export async function refresh(browserRefreshToken: string) {
+    if (!browserRefreshToken) {
+        throw new AppError("Refresh token não encontrado.", HTTPCODES.UNAUTHORIZED);
+    }
+
+    const decoded = jwt.verify(browserRefreshToken, String(process.env.JWTSECRETKEY)) as WorkerJwtPayload;
+
+    if (!await isWorkerRefreshTokenValid(decoded.id, browserRefreshToken)) {
+        throw new AppError("Refresh token inválido.", HTTPCODES.UNAUTHORIZED);
+    }
+
+    return jwt.sign({
+        id: serializeBigInt(decoded.id),
+        roles: decoded.roles
+    }, String(process.env.JWTSECRETKEY), {expiresIn: "10m"})
+}
+
+export async function logout(workerId: number | undefined) {
+    if (!workerId) {
+        throw new AppError("ID do Funcionário inválido.", HTTPCODES.BADREQUEST);
+    }
+
+    return await revokeWorkerTokens(workerId);
 }

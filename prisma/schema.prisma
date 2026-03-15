@@ -8,12 +8,11 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-enum condition {
-  VERY_BAD
-  BAD
-  NORMAL
-  GOOD
-  PRISTINE
+enum stateEnum {
+  DISPONIVEL
+  RESERVADO
+  EMPRESTADO
+  INDISPONIVEL
 }
 
 // Adicionar Depois A Cidade Do Trabalhador
@@ -65,6 +64,7 @@ model Book {
   category               Category                 @relation(fields: [fk_category_id], references: [id_category])
   Authors_In_Book        Authors_In_Book[]
   Sub_Categories_Of_Book Sub_Categories_Of_Book[]
+  bookCopies             Book_Copy[]
 }
 
 model Author {
@@ -99,17 +99,20 @@ model Bookcase {
   name         String @db.VarChar(255)
   fk_sector_id BigInt
 
-  sector Sector @relation(fields: [fk_sector_id], references: [id_sector])
+  sector     Sector      @relation(fields: [fk_sector_id], references: [id_sector])
+  bookCopies Book_Copy[]
 }
 
 model Book_Copy {
   id_book_copy   BigInt    @id @default(autoincrement())
   fk_book_id     BigInt
   fk_bookcase_id BigInt
-  is_avaliable   Boolean   @default(true)
   is_consult     Boolean   @default(false)
-  condition      condition
-  barcode        String    @db.VarChar(255)
+  state          stateEnum @default(DISPONIVEL) // Nullable
+  description    String?   @db.Text // Nullable
+
+  bookcase Bookcase @relation(fields: [fk_bookcase_id], references: [id_bookcase])
+  book     Book     @relation(fields: [fk_book_id], references: [id_book])
 }
 
 model Category {

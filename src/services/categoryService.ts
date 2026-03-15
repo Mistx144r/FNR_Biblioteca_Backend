@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createCategorySchema, updateCategorySchema } from "../schemas/categorySchema";
 import { prisma } from "../utils/prisma";
+import { returnNumberedID } from "../utils/utils"
 import { AppError } from "../errors/AppError";
 import { HTTPCODES } from "../utils/httpCodes";
 
@@ -14,7 +15,7 @@ export async function getAll() {
 }
 
 export async function getById(categoryIdS: string | string[]) {
-    const categoryId = Number(Array.isArray(categoryIdS) ? categoryIdS[0] : categoryIdS);
+    const categoryId = returnNumberedID(categoryIdS);
 
     if (!categoryId) {
        throw new AppError("ID da Categoria inválido.", HTTPCODES.BADREQUEST);
@@ -45,7 +46,7 @@ export async function create(body: CreateCategoryDTO) {
 
 export async function update(categoryIdS: string | string[], body: UpdateCategoryDTO) {
     const { name } = body;
-    const categoryId = Number(Array.isArray(categoryIdS) ? categoryIdS[0] : categoryIdS);
+    const categoryId = returnNumberedID(categoryIdS);
 
     if (!name) {
         throw new AppError("O nome da Categoria está faltando.", HTTPCODES.BADREQUEST);
@@ -71,7 +72,7 @@ export async function update(categoryIdS: string | string[], body: UpdateCategor
 }
 
 export async function deleteById(categoryIdS: string | string[]) {
-    const categoryId = Number(Array.isArray(categoryIdS) ? categoryIdS[0] : categoryIdS);
+    const categoryId = returnNumberedID(categoryIdS);
 
     if (!categoryId) {
         throw new AppError("ID da Categoria inválido.", HTTPCODES.BADREQUEST);

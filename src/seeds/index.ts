@@ -7,6 +7,9 @@ async function main() {
     await seeds.seedRoles()
     await seeds.seedWorkers()
     await seeds.seedBooks()
+    await seeds.seedSectors()
+    await seeds.seedBookcases()
+    await seeds.seedBookCopies()
 }
 
 main().then(() => console.log("Done!"));

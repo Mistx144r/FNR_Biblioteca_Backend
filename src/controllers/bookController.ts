@@ -19,11 +19,17 @@ export const getById = asyncHandler(async (req: Request, res: Response) => {
     res.status(HTTPCODES.OK).json(serializeBigInt(book));
 });
 
-export const getBookAllInfoById = asyncHandler(async(req: Request, res:Response)=> {
+export const getBookAllInfoById = asyncHandler(async(req: Request, res:Response) => {
     const { id } = req.params;
     const book = await bookService.getAllBookInfoById(id);
     res.status(HTTPCODES.OK).json(serializeBigInt(book));
 });
+
+export const getAllBookCopiesWithBookId = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params
+    const bookCopies = await bookService.getAllBookCopiesWithBookId(id);
+    res.status(HTTPCODES.OK).json(serializeBigInt(bookCopies));
+})
 
 export const create = asyncHandler(async (req: Request, res: Response) => {
     const body = createBookSchema.parse(req.body);

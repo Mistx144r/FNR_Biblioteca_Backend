@@ -239,12 +239,12 @@ describe("DELETE /api/v1/workers/:id/roles/:idRole", () => {
 });
 
 // ----------------------------------------------------------------
-// POST /api/v1/workers/login
+// POST /api/v1/workers/auth/login
 // ----------------------------------------------------------------
-describe("POST /api/v1/workers/login", () => {
+describe("POST /api/v1/workers/auth/login", () => {
     it("Deve retornar erro pois o email não existe. STATUS: 404", async () => {
         const response = await request(app)
-            .post("/api/v1/workers/login")
+            .post("/api/v1/workers/auth/login")
             .send({
                 email: "inexistente@biblioteca.edu.br",
                 password: "Senha@123"
@@ -255,7 +255,7 @@ describe("POST /api/v1/workers/login", () => {
 
     it("Deve retornar erro pois a senha está incorreta. STATUS: 401", async () => {
         const response = await request(app)
-            .post("/api/v1/workers/login")
+            .post("/api/v1/workers/auth/login")
             .send({
                 email: "admin@biblioteca.edu.br",
                 password: "SenhaErrada@123"
@@ -266,7 +266,7 @@ describe("POST /api/v1/workers/login", () => {
 
     it("Deve retornar erro pois os dados estão faltando. STATUS: 400", async () => {
         const response = await request(app)
-            .post("/api/v1/workers/login")
+            .post("/api/v1/workers/auth/login")
             .send({ email: "admin@biblioteca.edu.br" });
 
         expect(response.status).toBe(HTTPCODES.BADREQUEST);

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createSubCategorySchema, updateSubCategorySchema } from "../schemas/subCategorySchema";
 import { prisma } from "../utils/prisma";
+import { returnNumberedID } from "../utils/utils";
 import { AppError } from "../errors/AppError";
 import { HTTPCODES } from "../utils/httpCodes";
 
@@ -14,7 +15,7 @@ export async function getAll() {
 }
 
 export async function getById(subCategoryIdS: string | string[]) {
-    const subCategoryId = Number(Array.isArray(subCategoryIdS) ? subCategoryIdS[0] : subCategoryIdS);
+    const subCategoryId = returnNumberedID(subCategoryIdS);
 
     if (!subCategoryId) {
         throw new AppError("ID da Sub-Categoria inválido.", HTTPCODES.BADREQUEST);
@@ -45,8 +46,8 @@ export async function create(body: CreateSubCategoryDTO) {
     return repository.sub_Category.create({data: body});
 }
 
-export async function update(subCategoryIdS: string | string[] ,body: UpdateSubCategoryDTO) {
-    const subCategoryId = Number(Array.isArray(subCategoryIdS) ? subCategoryIdS[0] : subCategoryIdS);
+export async function update(subCategoryIdS: string | string[], body: UpdateSubCategoryDTO) {
+    const subCategoryId = returnNumberedID(subCategoryIdS)
 
     if (!subCategoryId) {
         throw new AppError("ID da Sub-Categoria inválido.", HTTPCODES.BADREQUEST);
@@ -68,7 +69,7 @@ export async function update(subCategoryIdS: string | string[] ,body: UpdateSubC
 }
 
 export async function deleteById(subCategoryIdS: string | string[]) {
-    const subCategoryId = Number(Array.isArray(subCategoryIdS) ? subCategoryIdS[0] : subCategoryIdS);
+    const subCategoryId = returnNumberedID(subCategoryIdS)
 
     if (!subCategoryId) {
         throw new AppError("ID da Sub-Categoria inválido.", HTTPCODES.BADREQUEST);

@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, stateEnum } from "@prisma/client";
 import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
@@ -289,4 +289,86 @@ export async function seedCategories() {
     });
 
     console.log("✅ Categories seed concluído!");
+}
+
+export async function seedSectors() {
+    const sectors = [
+        { name: "Setor de Literatura",        letter: "A", fk_category_id: 1n },
+        { name: "Setor de Tecnologia",         letter: "B", fk_category_id: 5n },
+        { name: "Setor de Ciências Humanas",   letter: "C", fk_category_id: 3n },
+        { name: "Setor de Ciências Exatas",    letter: "D", fk_category_id: 2n },
+        { name: "Setor de Saúde",              letter: "E", fk_category_id: 8n },
+    ];
+
+    await prisma.sector.createMany({
+        data: sectors,
+        skipDuplicates: true,
+    });
+
+    console.log("✅ Sectors seed concluído!");
+}
+
+export async function seedBookcases() {
+    const bookcases = [
+        // Setor A - Literatura
+        { name: "Estante A1", fk_sector_id: 1n },
+        { name: "Estante A2", fk_sector_id: 1n },
+        { name: "Estante A3", fk_sector_id: 1n },
+
+        // Setor B - Tecnologia
+        { name: "Estante B1", fk_sector_id: 2n },
+        { name: "Estante B2", fk_sector_id: 2n },
+
+        // Setor C - Ciências Humanas
+        { name: "Estante C1", fk_sector_id: 3n },
+        { name: "Estante C2", fk_sector_id: 3n },
+
+        // Setor D - Ciências Exatas
+        { name: "Estante D1", fk_sector_id: 4n },
+        { name: "Estante D2", fk_sector_id: 4n },
+
+        // Setor E - Saúde
+        { name: "Estante E1", fk_sector_id: 5n },
+        { name: "Estante E2", fk_sector_id: 5n },
+    ];
+
+    await prisma.bookcase.createMany({
+        data: bookcases,
+        skipDuplicates: true,
+    });
+
+    console.log("✅ Bookcases seed concluído!");
+}
+
+export async function seedBookCopies() {
+    const bookCopies = [
+        // Livro 1 - 3 cópias
+        { fk_book_id: 1n, fk_bookcase_id: 1n, is_consult: false, state: stateEnum.DISPONIVEL,  description: "Exemplar em bom estado." },
+        { fk_book_id: 1n, fk_bookcase_id: 1n, is_consult: false, state: stateEnum.EMPRESTADO,  description: "Exemplar com pequenos riscos na capa." },
+        { fk_book_id: 1n, fk_bookcase_id: 1n, is_consult: true,  state: stateEnum.DISPONIVEL,  description: "Exemplar exclusivo para consulta local." },
+
+        // Livro 2 - 2 cópias
+        { fk_book_id: 2n, fk_bookcase_id: 2n, is_consult: false, state: stateEnum.DISPONIVEL,  description: "Exemplar em bom estado." },
+        { fk_book_id: 2n, fk_bookcase_id: 2n, is_consult: false, state: stateEnum.RESERVADO,   description: "Exemplar com páginas amareladas." },
+
+        // Livro 3 - 3 cópias
+        { fk_book_id: 3n, fk_bookcase_id: 3n, is_consult: false, state: stateEnum.DISPONIVEL,  description: "Exemplar em bom estado." },
+        { fk_book_id: 3n, fk_bookcase_id: 3n, is_consult: false, state: stateEnum.DISPONIVEL,  description: "Exemplar em bom estado." },
+        { fk_book_id: 3n, fk_bookcase_id: 3n, is_consult: true,  state: stateEnum.INDISPONIVEL, description: "Exemplar danificado, aguardando reparo." },
+
+        // Livro 4 - 2 cópias
+        { fk_book_id: 4n, fk_bookcase_id: 4n, is_consult: false, state: stateEnum.DISPONIVEL,  description: "Exemplar em bom estado." },
+        { fk_book_id: 4n, fk_bookcase_id: 4n, is_consult: false, state: stateEnum.EMPRESTADO,  description: "Exemplar com capa plastificada." },
+
+        // Livro 5 - 2 cópias
+        { fk_book_id: 5n, fk_bookcase_id: 5n, is_consult: false, state: stateEnum.DISPONIVEL,  description: "Exemplar em bom estado." },
+        { fk_book_id: 5n, fk_bookcase_id: 5n, is_consult: true,  state: stateEnum.DISPONIVEL,  description: "Exemplar exclusivo para consulta local." },
+    ];
+
+    await prisma.book_Copy.createMany({
+        data: bookCopies,
+        skipDuplicates: true,
+    });
+
+    console.log("✅ Book Copies seed concluído!");
 }

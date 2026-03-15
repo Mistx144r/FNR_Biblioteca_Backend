@@ -1,6 +1,8 @@
 // API Basic Packages
 import { apiReference } from "@scalar/express-api-reference";
 import { errorHandler } from "./middlewares/errorHandler";
+
+import cookieParser from "cookie-parser";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -20,6 +22,7 @@ app.use(
 );
 
 app.use(express.json());
+app.use(cookieParser());
 app.use("/reference", apiReference({url: "/openapi.json"}));
 app.use("/api/v1/", routesV1);
 app.use(errorHandler);

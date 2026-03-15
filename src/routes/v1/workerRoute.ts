@@ -1,4 +1,6 @@
 import express = require("express");
+import { workerAuthMiddleware } from "../../middlewares/workerAuthMiddleware";
+import { requireRole } from "../../middlewares/requiredRoleMiddleware";
 import * as workerController from "../../controllers/workerController";
 
 const router = express.Router();
@@ -6,26 +8,28 @@ const router = express.Router();
 //================================
 // Main Worker Functions
 //================================
-router.get("/", workerController.getAll);
-router.get("/:id", workerController.getById);
-router.get("/:id/everything", workerController.getWorkerAllInfoById);
+router.get("/", workerAuthMiddleware, workerController.getAll);
+router.get("/:id", workerAuthMiddleware, workerController.getById);
+router.get("/:id/everything", workerAuthMiddleware, workerController.getWorkerAllInfoById);
 
-router.post("/", workerController.create);
+router.post("/", workerAuthMiddleware, requireRole(["Administrador"]), workerController.create);
 
-router.put("/:id", workerController.update);
+router.put("/:id", workerAuthMiddleware, requireRole(["Administrador"]), workerController.update);
 
-router.delete("/:id", workerController.deleteById);
+router.delete("/:id", workerAuthMiddleware, requireRole(["Administrador"]), workerController.deleteById);
 
 //================================
 // Role Functions
 //================================
-router.get("/:id/roles", workerController.getRoles);
-router.post("/:idWorker/roles/:idRole", workerController.addRole);
-router.delete("/:idWorker/roles/:idRole", workerController.removeRole);
+router.get("/:id/roles", workerAuthMiddleware, workerController.getRoles);
+router.post("/:idWorker/roles/:idRole", workerAuthMiddleware, requireRole(["Administrador"]), workerController.addRole);
+router.delete("/:idWorker/roles/:idRole", workerAuthMiddleware, requireRole(["Administrador"]), workerController.removeRole);
 
 //================================
 // Auth Functions
 //================================
-router.post("/login", workerController.login);
+router.post("/auth/login", workerController.login);
+router.post("/auth/refresh", workerController.refresh);
+router.delete("/auth/logout", workerAuthMiddleware, workerController.logout);
 
 export default router;

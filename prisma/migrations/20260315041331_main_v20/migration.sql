@@ -1,5 +1,5 @@
 -- CreateEnum
-CREATE TYPE "condition" AS ENUM ('VERY_BAD', 'BAD', 'NORMAL', 'GOOD', 'PRISTINE');
+CREATE TYPE "stateEnum" AS ENUM ('DISPONIVEL', 'RESERVADO', 'EMPRESTADO', 'INDISPONIVEL');
 
 -- CreateTable
 CREATE TABLE "Worker" (
@@ -93,10 +93,9 @@ CREATE TABLE "Book_Copy" (
     "id_book_copy" BIGSERIAL NOT NULL,
     "fk_book_id" BIGINT NOT NULL,
     "fk_bookcase_id" BIGINT NOT NULL,
-    "is_avaliable" BOOLEAN NOT NULL DEFAULT true,
     "is_consult" BOOLEAN NOT NULL DEFAULT false,
-    "condition" "condition" NOT NULL,
-    "barcode" VARCHAR(255) NOT NULL,
+    "state" "stateEnum" NOT NULL DEFAULT 'DISPONIVEL',
+    "description" TEXT,
 
     CONSTRAINT "Book_Copy_pkey" PRIMARY KEY ("id_book_copy")
 );
@@ -167,6 +166,12 @@ ALTER TABLE "Sector" ADD CONSTRAINT "Sector_fk_category_id_fkey" FOREIGN KEY ("f
 
 -- AddForeignKey
 ALTER TABLE "Bookcase" ADD CONSTRAINT "Bookcase_fk_sector_id_fkey" FOREIGN KEY ("fk_sector_id") REFERENCES "Sector"("id_sector") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Book_Copy" ADD CONSTRAINT "Book_Copy_fk_bookcase_id_fkey" FOREIGN KEY ("fk_bookcase_id") REFERENCES "Bookcase"("id_bookcase") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Book_Copy" ADD CONSTRAINT "Book_Copy_fk_book_id_fkey" FOREIGN KEY ("fk_book_id") REFERENCES "Book"("id_book") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Sub_Categories_Of_Book" ADD CONSTRAINT "Sub_Categories_Of_Book_fk_sub_category_fkey" FOREIGN KEY ("fk_sub_category") REFERENCES "Sub_Category"("id_sub_category") ON DELETE CASCADE ON UPDATE CASCADE;

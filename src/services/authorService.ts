@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createAuthorSchema, updateAuthorSchema } from "../schemas/authorSchema";
 import { prisma } from "../utils/prisma";
+import { returnNumberedID } from "../utils/utils";
 import { AppError } from "../errors/AppError";
 import { HTTPCODES } from "../utils/httpCodes";
 
@@ -15,7 +16,7 @@ export async function getAll() {
 }
 
 export async function getById(authorIdS: string | string[]) {
-    const authorId = Number(Array.isArray(authorIdS) ? authorIdS[0] : authorIdS);
+    const authorId = returnNumberedID(authorIdS);
 
     if (!authorId) {
         throw new AppError("ID do Autor inválido.", HTTPCODES.BADREQUEST);
@@ -51,7 +52,7 @@ export async function update(authorIdS: string | string[], body: UpdateAuthorDTO
         throw new AppError("O nome do Autor está faltando.", HTTPCODES.BADREQUEST);
     }
 
-    const authorId = Number(Array.isArray(authorIdS) ? authorIdS[0] : authorIdS);
+    const authorId = returnNumberedID(authorIdS);
 
     if (!authorId) {
         throw new AppError("ID do Autor inválido.", HTTPCODES.BADREQUEST);
@@ -73,7 +74,7 @@ export async function update(authorIdS: string | string[], body: UpdateAuthorDTO
 }
 
 export async function deleteById(authorIdS: string | string[]) {
-    const authorId = Number(Array.isArray(authorIdS) ? authorIdS[0] : authorIdS);
+    const authorId = returnNumberedID(authorIdS);
 
     if (!authorId) {
         throw new AppError("ID do Autor inválido.", HTTPCODES.BADREQUEST);

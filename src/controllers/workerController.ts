@@ -70,6 +70,45 @@ export const removeRole = asyncHandler(async (req: Request, res: Response) => {
 //================================
 export const login = asyncHandler(async (req: Request, res: Response) => {
     const body = loginWorkerSchema.parse(req.body);
-    const token = await workerService.login(body);
-    res.status(HTTPCODES.OK).json({token: serializeBigInt(token)});
+    const { accessToken, refreshToken } = await workerService.login(body);
+
+    res.cookie("accessToken", accessToken, {
+       httpOnly: true,
+       secure: process.env.NODE_ENV === "production", // Vai setar true ou false dependendo se estiver em prod ou não.
+       sameSite: "strict",
+       maxAge: Number(process.env.ACCESSEXPIRETIMEINSECONDS) * 1000,
+    });
+
+    res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production", // Vai setar true ou false dependendo se estiver em prod ou não.
+        sameSite: "strict",
+        maxAge: Number(process.env.REFRESHEXPIRETIMEINSECONDS) * 1000,
+    });
+
+    return res.status(HTTPCODES.OK).end();
+});
+
+export const refresh = asyncHandler(async (req: Request, res: Response) => {
+    const refreshToken = req.cookies.refreshToken;
+    const accessToken = await workerService.refresh(refreshToken);
+
+    res.cookie("accessToken", accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production", // Vai setar true ou false dependendo se estiver em prod ou não.
+        sameSite: "strict",
+        maxAge: Number(process.env.ACCESSEXPIRETIMEINSECONDS) * 1000,
+    });
+
+    return res.status(HTTPCODES.OK).end();
+});
+
+export const logout = asyncHandler(async(req: Request, res: Response) => {
+    const workerId = req.user?.id;
+    const revokedToken = workerService.logout(workerId);
+
+    res.clearCookie("accessToken");
+    res.clearCookie("refreshToken");
+
+    return res.status(HTTPCODES.OK).end();
 });

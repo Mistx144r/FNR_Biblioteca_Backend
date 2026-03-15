@@ -24,6 +24,12 @@ type PaginatedReturnData = {
 const repository = prisma;
 
 //================================
+// Reminders
+//================================
+// 1. Talvez adicionar uma paginacao no retorno dos Book Copies.
+// 2. ...
+
+//================================
 // Utils
 //================================
 function haveAllRequiredData(data: UpdateBookDTO) {
@@ -152,6 +158,31 @@ export async function getAllBookInfoById(idBookS: string | string[]) {
         authors,
         subCategories
     };
+}
+
+export async function getAllBookCopiesWithBookId(bookIdS: string | string[]) {
+    const bookId = returnNumberedID(bookIdS);
+
+    if (!bookId) {
+        throw new AppError("ID do livro inválido.", HTTPCODES.BADREQUEST);
+    }
+
+    const bookExists = await repository.book.findUnique({ where: { id_book: bookId } });
+
+    if (!bookExists) {
+        throw new AppError("Livro não encontrado.", HTTPCODES.NOTFOUND);
+    }
+
+    return repository.book_Copy.findMany({
+        where: { fk_book_id: bookId },
+        include: {
+            bookcase: {
+                include: {
+                    sector: true
+                }
+            }
+        }
+    });
 }
 
 export async function create(body: CreateBookDTO){
