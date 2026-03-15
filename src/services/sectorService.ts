@@ -31,6 +31,12 @@ export async function getById(sectorIds: string | string[]) {
 }
 
 export async function create(body: CreateSectorDTO) {
+    const categoryExists = await prisma.category.findUnique({ where: { id_category: body.category } });
+
+    if (!categoryExists) {
+        throw new AppError("Categoria não encontrada.", HTTPCODES.NOTFOUND);
+    }
+
     const alreadyExists = await prisma.sector.findFirst({where: {OR: [{name: body.name}, {letter: body.letter}]}});
 
     if (alreadyExists) {
@@ -64,6 +70,14 @@ export async function update(sectorIds: string | string[], body: UpdateSectorDTO
 
     if (alreadyExists && Number(alreadyExists.id_sector) !== sectorId) {
         throw new AppError("Um Setor já existe com essa letra.", HTTPCODES.BADREQUEST);
+    }
+
+    if (categoryId) {
+        const categoryExists = await prisma.category.findUnique({ where: { id_category: categoryId } });
+
+        if (!categoryExists) {
+            throw new AppError("Categoria não encontrada.", HTTPCODES.NOTFOUND);
+        }
     }
 
     const sector = await prisma.sector.findUnique({where: {id_sector: sectorId}});

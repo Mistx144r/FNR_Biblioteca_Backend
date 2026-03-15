@@ -253,7 +253,7 @@ export async function update(idBookS: string | string[], body: UpdateBookDTO) {
         if (body.isbn) {
             const doesBookAlreadyExistsWithThisISBN = await tx.book.findUnique({ where: { isbn: body.isbn as string } });
 
-            if (doesBookAlreadyExistsWithThisISBN && Number(doesBookAlreadyExistsWithThisISBN.id_book) !== idBook) {
+            if ((doesBookAlreadyExistsWithThisISBN && Number(doesBookAlreadyExistsWithThisISBN.id_book)) !== idBook) {
                 throw new AppError("Livro já existe com esse ISBN.", HTTPCODES.BADREQUEST);
             }
         }

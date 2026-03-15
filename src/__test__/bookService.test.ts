@@ -1,32 +1,47 @@
 import request from "supertest";
 import { app } from "../testApp";
 import { HTTPCODES } from "../utils/httpCodes";
+import { generateTestToken } from "./helpers/generateToken";
+
+const token = generateTestToken();
 
 // ----------------------------------------------------------------
 // GET /api/v1/books
 // ----------------------------------------------------------------
 describe("GET /api/v1/books", () => {
     it("Deve retornar uma lista paginada de todos os livros. STATUS: 200", async () => {
-        const response = await request(app).get("/api/v1/books/");
+        const response = await request(app)
+            .get("/api/v1/books/")
+            .set("Cookie", `accessToken=${token}`);
+
         expect(response.status).toBe(HTTPCODES.OK);
         expect(response.body).toHaveProperty("data");
         expect(response.body).toHaveProperty("meta");
     });
 
     it("Deve retornar a meta de paginação corretamente. STATUS: 200", async () => {
-        const response = await request(app).get("/api/v1/books/?page=1&limit=5");
+        const response = await request(app)
+            .get("/api/v1/books/?page=1&limit=5")
+            .set("Cookie", `accessToken=${token}`);
+
         expect(response.status).toBe(HTTPCODES.OK);
         expect(response.body.meta.limit).toBe(5);
-        expect(response.body.meta.page).toBe(1);
+        expect(response.body.meta.pages).toBe(1);
     });
 
     it("Deve retornar erro pois a página enviada é inválida. STATUS: 400", async () => {
-        const response = await request(app).get("/api/v1/books/?page=0");
+        const response = await request(app)
+            .get("/api/v1/books/?page=0")
+            .set("Cookie", `accessToken=${token}`);
+
         expect(response.status).toBe(HTTPCODES.BADREQUEST);
     });
 
     it("Deve retornar erro pois o limite enviado é inválido. STATUS: 400", async () => {
-        const response = await request(app).get("/api/v1/books/?limit=0");
+        const response = await request(app)
+            .get("/api/v1/books/?limit=0")
+            .set("Cookie", `accessToken=${token}`);
+
         expect(response.status).toBe(HTTPCODES.BADREQUEST);
     });
 });
@@ -36,18 +51,27 @@ describe("GET /api/v1/books", () => {
 // ----------------------------------------------------------------
 describe("GET /api/v1/books/:id", () => {
     it("Deve retornar um livro específico. STATUS: 200", async () => {
-        const response = await request(app).get("/api/v1/books/1");
+        const response = await request(app)
+            .get("/api/v1/books/1")
+            .set("Cookie", `accessToken=${token}`);
+
         expect(response.status).toBe(HTTPCODES.OK);
         expect(response.body).toHaveProperty("id_book");
     });
 
     it("Deve retornar erro pois o livro não existe. STATUS: 404", async () => {
-        const response = await request(app).get("/api/v1/books/5842785724975984");
+        const response = await request(app)
+            .get("/api/v1/books/5842785724975984")
+            .set("Cookie", `accessToken=${token}`);
+
         expect(response.status).toBe(HTTPCODES.NOTFOUND);
     });
 
     it("Deve retornar erro pois o ID não é um número. STATUS: 400", async () => {
-        const response = await request(app).get("/api/v1/books/abc");
+        const response = await request(app)
+            .get("/api/v1/books/abc")
+            .set("Cookie", `accessToken=${token}`);
+
         expect(response.status).toBe(HTTPCODES.BADREQUEST);
     });
 });
@@ -56,8 +80,11 @@ describe("GET /api/v1/books/:id", () => {
 // GET /api/v1/books/:id/everything
 // ----------------------------------------------------------------
 describe("GET /api/v1/books/:id/everything", () => {
-    it("Deve retornar todas as informações do livro (dados, autores, sub-categorias). STATUS: 200", async () => {
-        const response = await request(app).get("/api/v1/books/1/everything");
+    it("Deve retornar todas as informações do livro. STATUS: 200", async () => {
+        const response = await request(app)
+            .get("/api/v1/books/1/everything")
+            .set("Cookie", `accessToken=${token}`);
+
         expect(response.status).toBe(HTTPCODES.OK);
         expect(response.body).toHaveProperty("book");
         expect(response.body).toHaveProperty("authors");
@@ -65,12 +92,18 @@ describe("GET /api/v1/books/:id/everything", () => {
     });
 
     it("Deve retornar erro pois o livro não existe. STATUS: 404", async () => {
-        const response = await request(app).get("/api/v1/books/999999/everything");
+        const response = await request(app)
+            .get("/api/v1/books/999999/everything")
+            .set("Cookie", `accessToken=${token}`);
+
         expect(response.status).toBe(HTTPCODES.NOTFOUND);
     });
 
     it("Deve retornar erro pois o ID não é um número. STATUS: 400", async () => {
-        const response = await request(app).get("/api/v1/books/abc/everything");
+        const response = await request(app)
+            .get("/api/v1/books/abc/everything")
+            .set("Cookie", `accessToken=${token}`);
+
         expect(response.status).toBe(HTTPCODES.BADREQUEST);
     });
 });
@@ -82,6 +115,7 @@ describe("POST /api/v1/books/", () => {
     it("Deve retornar erro pois o ISBN já está cadastrado. STATUS: 400", async () => {
         const response = await request(app)
             .post("/api/v1/books/")
+            .set("Cookie", `accessToken=${token}`)
             .send({
                 name: "Clean Architecture",
                 isbn: "12345678902",
@@ -101,6 +135,7 @@ describe("POST /api/v1/books/", () => {
     it("Deve retornar erro pois os dados estão faltando. STATUS: 400", async () => {
         const response = await request(app)
             .post("/api/v1/books/")
+            .set("Cookie", `accessToken=${token}`)
             .send({ name: "Clean Architecture" });
 
         expect(response.status).toBe(HTTPCODES.BADREQUEST);
@@ -109,9 +144,10 @@ describe("POST /api/v1/books/", () => {
     it("Deve retornar erro pois a categoria não existe. STATUS: 404", async () => {
         const response = await request(app)
             .post("/api/v1/books/")
+            .set("Cookie", `accessToken=${token}`)
             .send({
                 name: "Livro Teste",
-                isbn: "00000000001",
+                isbn: "1234567891",
                 description: "Descrição teste.",
                 publisher: "Editora Teste",
                 language: "pt-BR",
@@ -128,6 +164,7 @@ describe("POST /api/v1/books/", () => {
     it("Deve retornar erro pois o ID da categoria não é um número. STATUS: 400", async () => {
         const response = await request(app)
             .post("/api/v1/books/")
+            .set("Cookie", `accessToken=${token}`)
             .send({
                 name: "Livro Teste",
                 isbn: "00000000002",
@@ -152,6 +189,7 @@ describe("PUT /api/v1/books/:id", () => {
     it("Deve retornar erro pois o livro não existe. STATUS: 404", async () => {
         const response = await request(app)
             .put("/api/v1/books/8932983298382")
+            .set("Cookie", `accessToken=${token}`)
             .send({ category: 2 });
 
         expect(response.status).toBe(HTTPCODES.NOTFOUND);
@@ -160,6 +198,7 @@ describe("PUT /api/v1/books/:id", () => {
     it("Deve retornar erro pois a categoria não existe. STATUS: 404", async () => {
         const response = await request(app)
             .put("/api/v1/books/1")
+            .set("Cookie", `accessToken=${token}`)
             .send({ category: 999999999 });
 
         expect(response.status).toBe(HTTPCODES.NOTFOUND);
@@ -168,7 +207,8 @@ describe("PUT /api/v1/books/:id", () => {
     it("Deve atualizar o livro com o mesmo ISBN sem retornar erro. STATUS: 200", async () => {
         const response = await request(app)
             .put("/api/v1/books/1")
-            .send({ isbn: "12345678902", category: 5 });
+            .set("Cookie", `accessToken=${token}`)
+            .send({ isbn: "9780132350884", category: 5 });
 
         expect(response.status).toBe(HTTPCODES.OK);
     });
@@ -176,6 +216,7 @@ describe("PUT /api/v1/books/:id", () => {
     it("Deve retornar erro pois o ID da categoria não é um número. STATUS: 400", async () => {
         const response = await request(app)
             .put("/api/v1/books/1")
+            .set("Cookie", `accessToken=${token}`)
             .send({ category: "awdd8awd8aw" });
 
         expect(response.status).toBe(HTTPCODES.BADREQUEST);
@@ -184,6 +225,7 @@ describe("PUT /api/v1/books/:id", () => {
     it("Deve retornar erro pois o ID do livro não é um número. STATUS: 400", async () => {
         const response = await request(app)
             .put("/api/v1/books/dwadaw1231gas")
+            .set("Cookie", `accessToken=${token}`)
             .send({ name: "Livro Teste" });
 
         expect(response.status).toBe(HTTPCODES.BADREQUEST);
@@ -192,6 +234,7 @@ describe("PUT /api/v1/books/:id", () => {
     it("Deve atualizar apenas o nome sem exigir outros campos. STATUS: 200", async () => {
         const response = await request(app)
             .put("/api/v1/books/1")
+            .set("Cookie", `accessToken=${token}`)
             .send({ name: "Novo Nome" });
 
         expect(response.status).toBe(HTTPCODES.OK);
@@ -200,6 +243,7 @@ describe("PUT /api/v1/books/:id", () => {
     it("Deve retornar erro pois a data enviada é inválida. STATUS: 400", async () => {
         const response = await request(app)
             .put("/api/v1/books/1")
+            .set("Cookie", `accessToken=${token}`)
             .send({ published_at: "data-invalida", category: 5 });
 
         expect(response.status).toBe(HTTPCODES.BADREQUEST);
@@ -211,12 +255,18 @@ describe("PUT /api/v1/books/:id", () => {
 // ----------------------------------------------------------------
 describe("DELETE /api/v1/books/:id", () => {
     it("Deve retornar erro pois o livro não existe. STATUS: 404", async () => {
-        const response = await request(app).delete("/api/v1/books/999999999");
+        const response = await request(app)
+            .delete("/api/v1/books/999999999")
+            .set("Cookie", `accessToken=${token}`);
+
         expect(response.status).toBe(HTTPCODES.NOTFOUND);
     });
 
     it("Deve retornar erro pois o ID não é um número. STATUS: 400", async () => {
-        const response = await request(app).delete("/api/v1/books/abc");
+        const response = await request(app)
+            .delete("/api/v1/books/abc")
+            .set("Cookie", `accessToken=${token}`);
+
         expect(response.status).toBe(HTTPCODES.BADREQUEST);
     });
 });
@@ -226,13 +276,19 @@ describe("DELETE /api/v1/books/:id", () => {
 // ----------------------------------------------------------------
 describe("GET /api/v1/books/:id/authors", () => {
     it("Deve retornar a lista de autores do livro. STATUS: 200", async () => {
-        const response = await request(app).get("/api/v1/books/1/authors");
+        const response = await request(app)
+            .get("/api/v1/books/1/authors")
+            .set("Cookie", `accessToken=${token}`);
+
         expect(response.status).toBe(HTTPCODES.OK);
         expect(Array.isArray(response.body)).toBe(true);
     });
 
     it("Deve retornar erro pois o ID do livro não é um número. STATUS: 400", async () => {
-        const response = await request(app).get("/api/v1/books/abc/authors");
+        const response = await request(app)
+            .get("/api/v1/books/abc/authors")
+            .set("Cookie", `accessToken=${token}`);
+
         expect(response.status).toBe(HTTPCODES.BADREQUEST);
     });
 });
@@ -242,22 +298,34 @@ describe("GET /api/v1/books/:id/authors", () => {
 // ----------------------------------------------------------------
 describe("POST /api/v1/books/:id/authors/:idAuthor", () => {
     it("Deve retornar erro pois o autor não existe. STATUS: 404", async () => {
-        const response = await request(app).post("/api/v1/books/1/authors/999999");
+        const response = await request(app)
+            .post("/api/v1/books/1/authors/999999")
+            .set("Cookie", `accessToken=${token}`);
+
         expect(response.status).toBe(HTTPCODES.NOTFOUND);
     });
 
     it("Deve retornar erro pois o livro não existe. STATUS: 404", async () => {
-        const response = await request(app).post("/api/v1/books/999999/authors/1");
+        const response = await request(app)
+            .post("/api/v1/books/999999/authors/1")
+            .set("Cookie", `accessToken=${token}`);
+
         expect(response.status).toBe(HTTPCODES.NOTFOUND);
     });
 
     it("Deve retornar erro pois o ID do livro não é um número. STATUS: 400", async () => {
-        const response = await request(app).post("/api/v1/books/abc/authors/1");
+        const response = await request(app)
+            .post("/api/v1/books/abc/authors/1")
+            .set("Cookie", `accessToken=${token}`);
+
         expect(response.status).toBe(HTTPCODES.BADREQUEST);
     });
 
     it("Deve retornar erro pois o ID do autor não é um número. STATUS: 400", async () => {
-        const response = await request(app).post("/api/v1/books/1/authors/abc");
+        const response = await request(app)
+            .post("/api/v1/books/1/authors/abc")
+            .set("Cookie", `accessToken=${token}`);
+
         expect(response.status).toBe(HTTPCODES.BADREQUEST);
     });
 });
@@ -266,18 +334,27 @@ describe("POST /api/v1/books/:id/authors/:idAuthor", () => {
 // DELETE /api/v1/books/:id/authors/:idAuthor
 // ----------------------------------------------------------------
 describe("DELETE /api/v1/books/:id/authors/:idAuthor", () => {
-    it("Deve retornar erro pois o autor não está relacionado ao livro. STATUS: 400", async () => {
-        const response = await request(app).delete("/api/v1/books/1/authors/999999");
+    it("Deve retornar erro pois o autor não está relacionado ao livro. STATUS: 404", async () => {
+        const response = await request(app)
+            .delete("/api/v1/books/1/authors/999999")
+            .set("Cookie", `accessToken=${token}`);
+
         expect(response.status).toBe(HTTPCODES.NOTFOUND);
     });
 
     it("Deve retornar erro pois o livro não existe. STATUS: 404", async () => {
-        const response = await request(app).delete("/api/v1/books/999999/authors/1");
+        const response = await request(app)
+            .delete("/api/v1/books/999999/authors/1")
+            .set("Cookie", `accessToken=${token}`);
+
         expect(response.status).toBe(HTTPCODES.NOTFOUND);
     });
 
     it("Deve retornar erro pois o ID do livro não é um número. STATUS: 400", async () => {
-        const response = await request(app).delete("/api/v1/books/abc/authors/1");
+        const response = await request(app)
+            .delete("/api/v1/books/abc/authors/1")
+            .set("Cookie", `accessToken=${token}`);
+
         expect(response.status).toBe(HTTPCODES.BADREQUEST);
     });
 });
@@ -287,13 +364,19 @@ describe("DELETE /api/v1/books/:id/authors/:idAuthor", () => {
 // ----------------------------------------------------------------
 describe("GET /api/v1/books/:id/subcategories", () => {
     it("Deve retornar a lista de sub-categorias do livro. STATUS: 200", async () => {
-        const response = await request(app).get("/api/v1/books/1/subcategories");
+        const response = await request(app)
+            .get("/api/v1/books/1/subcategories")
+            .set("Cookie", `accessToken=${token}`);
+
         expect(response.status).toBe(HTTPCODES.OK);
         expect(Array.isArray(response.body)).toBe(true);
     });
 
     it("Deve retornar erro pois o ID do livro não é um número. STATUS: 400", async () => {
-        const response = await request(app).get("/api/v1/books/abc/subcategories");
+        const response = await request(app)
+            .get("/api/v1/books/abc/subcategories")
+            .set("Cookie", `accessToken=${token}`);
+
         expect(response.status).toBe(HTTPCODES.BADREQUEST);
     });
 });
@@ -303,22 +386,34 @@ describe("GET /api/v1/books/:id/subcategories", () => {
 // ----------------------------------------------------------------
 describe("POST /api/v1/books/:id/subcategories/:idSubCategory", () => {
     it("Deve retornar erro pois a sub-categoria não existe. STATUS: 404", async () => {
-        const response = await request(app).post("/api/v1/books/1/subcategories/999999");
+        const response = await request(app)
+            .post("/api/v1/books/1/subcategories/999999")
+            .set("Cookie", `accessToken=${token}`);
+
         expect(response.status).toBe(HTTPCODES.NOTFOUND);
     });
 
     it("Deve retornar erro pois o livro não existe. STATUS: 404", async () => {
-        const response = await request(app).post("/api/v1/books/999999/subcategories/1");
+        const response = await request(app)
+            .post("/api/v1/books/999999/subcategories/1")
+            .set("Cookie", `accessToken=${token}`);
+
         expect(response.status).toBe(HTTPCODES.NOTFOUND);
     });
 
     it("Deve retornar erro pois o ID do livro não é um número. STATUS: 400", async () => {
-        const response = await request(app).post("/api/v1/books/abc/subcategories/1");
+        const response = await request(app)
+            .post("/api/v1/books/abc/subcategories/1")
+            .set("Cookie", `accessToken=${token}`);
+
         expect(response.status).toBe(HTTPCODES.BADREQUEST);
     });
 
     it("Deve retornar erro pois o ID da sub-categoria não é um número. STATUS: 400", async () => {
-        const response = await request(app).post("/api/v1/books/1/subcategories/abc");
+        const response = await request(app)
+            .post("/api/v1/books/1/subcategories/abc")
+            .set("Cookie", `accessToken=${token}`);
+
         expect(response.status).toBe(HTTPCODES.BADREQUEST);
     });
 });
@@ -327,18 +422,27 @@ describe("POST /api/v1/books/:id/subcategories/:idSubCategory", () => {
 // DELETE /api/v1/books/:id/subcategories/:idSubCategory
 // ----------------------------------------------------------------
 describe("DELETE /api/v1/books/:id/subcategories/:idSubCategory", () => {
-    it("Deve retornar erro pois a sub-categoria não está relacionada ao livro. STATUS: 400", async () => {
-        const response = await request(app).delete("/api/v1/books/1/subcategories/999999");
+    it("Deve retornar erro pois a sub-categoria não está relacionada ao livro. STATUS: 404", async () => {
+        const response = await request(app)
+            .delete("/api/v1/books/1/subcategories/999999")
+            .set("Cookie", `accessToken=${token}`);
+
         expect(response.status).toBe(HTTPCODES.NOTFOUND);
     });
 
     it("Deve retornar erro pois o livro não existe. STATUS: 404", async () => {
-        const response = await request(app).delete("/api/v1/books/999999/subcategories/1");
+        const response = await request(app)
+            .delete("/api/v1/books/999999/subcategories/1")
+            .set("Cookie", `accessToken=${token}`);
+
         expect(response.status).toBe(HTTPCODES.NOTFOUND);
     });
 
     it("Deve retornar erro pois o ID do livro não é um número. STATUS: 400", async () => {
-        const response = await request(app).delete("/api/v1/books/abc/subcategories/1");
+        const response = await request(app)
+            .delete("/api/v1/books/abc/subcategories/1")
+            .set("Cookie", `accessToken=${token}`);
+
         expect(response.status).toBe(HTTPCODES.BADREQUEST);
     });
 });

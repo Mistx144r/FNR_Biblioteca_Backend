@@ -31,6 +31,12 @@ export async function getById(bookcaseIds: string | string[]) {
 }
 
 export async function create(body: CreateBookcaseDTO) {
+    const sectorExists = await prisma.sector.findUnique({ where: { id_sector: body.sector } });
+
+    if (!sectorExists) {
+        throw new AppError("Setor não encontrado.", HTTPCODES.NOTFOUND);
+    }
+
     const alreadyExists = await prisma.bookcase.findFirst({where: {name: body.name}});
 
     if (alreadyExists) {
