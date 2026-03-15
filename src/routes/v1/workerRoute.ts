@@ -1,7 +1,14 @@
 import express = require("express");
+import rateLimit from "express-rate-limit";
 import { workerAuthMiddleware } from "../../middlewares/workerAuthMiddleware";
 import { requireRole } from "../../middlewares/requiredRoleMiddleware";
 import * as workerController from "../../controllers/workerController";
+
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 10 minutos
+    limit: 10,
+    message: { message: "Muitas tentativas. Tente novamente mais tarde." }
+});
 
 const router = express.Router();
 
@@ -28,8 +35,8 @@ router.delete("/:idWorker/roles/:idRole", workerAuthMiddleware, requireRole(["Ad
 //================================
 // Auth Functions
 //================================
-router.post("/auth/login", workerController.login);
-router.post("/auth/refresh", workerController.refresh);
+router.post("/auth/login", authLimiter, workerController.login);
+router.post("/auth/refresh", authLimiter, workerController.refresh);
 router.delete("/auth/logout", workerAuthMiddleware, workerController.logout);
 
 export default router;

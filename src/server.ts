@@ -12,7 +12,7 @@ import logger from "./utils/logger";
 import routesV1 from "./routes/v1";
 dotenv.config();
 
-export const app = express();
+const app = express();
 const PORT = 3000;
 
 app.use(

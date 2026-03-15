@@ -158,7 +158,7 @@ export async function update(workerIdS: string | string[], body: UpdateWorkerDTO
         throw new AppError("Funcionário não encontrado.", HTTPCODES.NOTFOUND);
     }
 
-    const alreadyExists = await repository.worker.findFirst({where: {OR: [{cpf: cpf}, {email: email}]}});
+    const alreadyExists = await repository.worker.findFirst({where: {OR: [{ cpf }, { email }], NOT: { id_worker: workerId }}});
 
     if (alreadyExists) {
         throw new AppError("Um Funcionário com esses dados já existe.", HTTPCODES.BADREQUEST);
@@ -299,13 +299,13 @@ export async function login(body: LoginWorkerDTO) {
     const worker = await repository.worker.findFirst({where: { email: email }, include: {Worker_Roles: {include: {role: true}}}});
 
     if (!worker) {
-        throw new AppError("Funcionário não encontrado.", HTTPCODES.NOTFOUND);
+        throw new AppError("Credenciais inválidas.", HTTPCODES.UNAUTHORIZED);
     }
 
     const isCorrectPassword = await bcrypt.compare(password, worker.password);
 
     if (!isCorrectPassword) {
-        throw new AppError("Dados de login inválidos.", HTTPCODES.UNAUTHORIZED);
+        throw new AppError("Credenciais inválidas.", HTTPCODES.UNAUTHORIZED);
     }
 
     const gotRoles = await getRoles(String(worker.id_worker));
@@ -332,16 +332,29 @@ export async function refresh(browserRefreshToken: string) {
         throw new AppError("Refresh token não encontrado.", HTTPCODES.UNAUTHORIZED);
     }
 
-    const decoded = jwt.verify(browserRefreshToken, String(process.env.JWTSECRETKEY)) as WorkerJwtPayload;
+    const decoded = jwt.verify(browserRefreshToken, String(process.env.JWTSECRETKEY), {algorithms: ["HS256"]}) as WorkerJwtPayload;
 
     if (!await isWorkerRefreshTokenValid(decoded.id, browserRefreshToken)) {
         throw new AppError("Refresh token inválido.", HTTPCODES.UNAUTHORIZED);
     }
 
-    return jwt.sign({
-        id: serializeBigInt(decoded.id),
-        roles: decoded.roles
-    }, String(process.env.JWTSECRETKEY), {expiresIn: "10m"})
+    const ttlRestante = decoded.exp! - Math.floor(Date.now() / 1000);
+
+    const newAccessToken = jwt.sign(
+        { id: decoded.id, roles: decoded.roles },
+        String(process.env.JWTSECRETKEY),
+        { expiresIn: "10m" }
+    );
+
+    const newRefreshToken = jwt.sign(
+        { id: decoded.id, roles: decoded.roles },
+        String(process.env.JWTSECRETKEY),
+        { expiresIn: ttlRestante }
+    );
+
+    await storeWorkerRefreshJWT(decoded.id, newRefreshToken, ttlRestante);
+
+    return { newAccessToken, newRefreshToken, ttlRestante };
 }
 
 export async function logout(workerId: number | undefined) {

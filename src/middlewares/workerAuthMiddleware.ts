@@ -12,7 +12,7 @@ export const workerAuthMiddleware = asyncHandler(async (req: Request, res: Respo
         throw new AppError("Access token não encontrado.", HTTPCODES.UNAUTHORIZED);
     }
 
-    const decoded = jwt.verify(accessToken, String(process.env.JWTSECRETKEY)) as WorkerJwtPayload;
+    const decoded = jwt.verify(accessToken, String(process.env.JWTSECRETKEY), {algorithms: ["HS256"]}) as WorkerJwtPayload;
 
     req.user = {
         id: decoded.id,

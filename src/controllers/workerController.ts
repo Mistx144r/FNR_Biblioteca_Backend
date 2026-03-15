@@ -83,6 +83,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production", // Vai setar true ou false dependendo se estiver em prod ou não.
         sameSite: "strict",
+        path: "/api/v1/workers/auth/refresh",
         maxAge: Number(process.env.REFRESHEXPIRETIMEINSECONDS) * 1000,
     });
 
@@ -91,13 +92,21 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
 
 export const refresh = asyncHandler(async (req: Request, res: Response) => {
     const refreshToken = req.cookies.refreshToken;
-    const accessToken = await workerService.refresh(refreshToken);
+    const { newAccessToken, newRefreshToken, ttlRestante } = await workerService.refresh(refreshToken);
 
-    res.cookie("accessToken", accessToken, {
+    res.cookie("accessToken", newAccessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production", // Vai setar true ou false dependendo se estiver em prod ou não.
         sameSite: "strict",
         maxAge: Number(process.env.ACCESSEXPIRETIMEINSECONDS) * 1000,
+    });
+
+    res.cookie("refreshToken", newRefreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production", // Vai setar true ou false dependendo se estiver em prod ou não.
+        sameSite: "strict",
+        path: "/api/v1/workers/auth/refresh",
+        maxAge: ttlRestante * 1000,
     });
 
     return res.status(HTTPCODES.OK).end();

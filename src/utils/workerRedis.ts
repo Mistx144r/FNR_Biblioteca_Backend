@@ -1,9 +1,13 @@
 import { redis } from "./redis";
 
-export function storeWorkerRefreshJWT(workerId: number, userJWT: string) {
+export async function storeWorkerRefreshJWT(workerId: number, userJWT: string, ttl?: number) {
+    const expiry = ttl ?? Number(process.env.REFRESHEXPIRETIMEINSECONDS);
+    const key = `${process.env.NODE_ENV}:${workerId}:refresh`;
+
     return redis.multi()
-        .set(`${process.env.NODE_ENV}:${workerId}:refresh`, userJWT)
-        .expire(`${process.env.NODE_ENV}:${workerId}:refresh`, Number(process.env.REFRESHEXPIRETIMEINSECONDS))
+        .del(key)
+        .set(key, userJWT)
+        .expire(key, expiry)
         .exec();
 }
 

@@ -8,8 +8,7 @@ import * as bookService from "../services/bookService";
 // Main Book Functions
 export const getAll = asyncHandler(async (req: Request, res: Response) => {
     const { page, limit } = req.query
-    // @ts-ignore
-    const books = await bookService.getAll(page, limit);
+    const books = await bookService.getAll(page as string, limit as string);
     res.status(HTTPCODES.OK).json(serializeBigInt(books));
 });
 
