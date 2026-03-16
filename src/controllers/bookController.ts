@@ -24,9 +24,9 @@ export const getBookAllInfoById = asyncHandler(async(req: Request, res:Response)
     res.status(HTTPCODES.OK).json(serializeBigInt(book));
 });
 
-export const getAllBookCopiesWithBookId = asyncHandler(async (req: Request, res: Response) => {
+export const getAllBookCopiesWithBookId_AllInfo = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params
-    const bookCopies = await bookService.getAllBookCopiesWithBookId(id);
+    const bookCopies = await bookService.getAllBookCopiesWithBookId_AllInfo(id);
     res.status(HTTPCODES.OK).json(serializeBigInt(bookCopies));
 })
 

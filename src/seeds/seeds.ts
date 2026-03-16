@@ -340,29 +340,43 @@ export async function seedBookcases() {
     console.log("✅ Bookcases seed concluído!");
 }
 
+export async function seedInstitutions() {
+    const categories = [
+        { name: "Nova Roma - Boa Viagem" },
+        { name: "Nova Roma - Caruaru" },
+    ];
+
+    await prisma.institution.createMany({
+        data: categories,
+        skipDuplicates: true,
+    });
+
+    console.log("✅ Categories seed concluído!");
+}
+
 export async function seedBookCopies() {
     const bookCopies = [
         // Livro 1 - 3 cópias
-        { fk_book_id: 1n, fk_bookcase_id: 1n, is_consult: false, state: stateEnum.DISPONIVEL,  description: "Exemplar em bom estado." },
-        { fk_book_id: 1n, fk_bookcase_id: 1n, is_consult: false, state: stateEnum.EMPRESTADO,  description: "Exemplar com pequenos riscos na capa." },
-        { fk_book_id: 1n, fk_bookcase_id: 1n, is_consult: true,  state: stateEnum.DISPONIVEL,  description: "Exemplar exclusivo para consulta local." },
+        { fk_book_id: 1n, fk_bookcase_id: 1n, fk_institution_id: 1n, is_virtual: false, is_consult: false, state: stateEnum.DISPONIVEL,  description: "Exemplar em bom estado." },
+        { fk_book_id: 1n, fk_bookcase_id: 1n, fk_institution_id: 2n, is_virtual: false, is_consult: false, state: stateEnum.EMPRESTADO,  description: "Exemplar com pequenos riscos na capa." },
+        { fk_book_id: 1n, fk_bookcase_id: 1n, fk_institution_id: 1n, is_virtual: false, is_consult: true,  state: stateEnum.DISPONIVEL,  description: "Exemplar exclusivo para consulta local." },
 
         // Livro 2 - 2 cópias
-        { fk_book_id: 2n, fk_bookcase_id: 2n, is_consult: false, state: stateEnum.DISPONIVEL,  description: "Exemplar em bom estado." },
-        { fk_book_id: 2n, fk_bookcase_id: 2n, is_consult: false, state: stateEnum.RESERVADO,   description: "Exemplar com páginas amareladas." },
+        { fk_book_id: 2n, fk_bookcase_id: 2n, fk_institution_id: 1n,  is_virtual: false, is_consult: false, state: stateEnum.DISPONIVEL,  description: "Exemplar em bom estado." },
+        { fk_book_id: 2n, fk_bookcase_id: 2n, fk_institution_id: 1n,  is_virtual: false, is_consult: false, state: stateEnum.RESERVADO,   description: "Exemplar com páginas amareladas." },
 
         // Livro 3 - 3 cópias
-        { fk_book_id: 3n, fk_bookcase_id: 3n, is_consult: false, state: stateEnum.DISPONIVEL,  description: "Exemplar em bom estado." },
-        { fk_book_id: 3n, fk_bookcase_id: 3n, is_consult: false, state: stateEnum.DISPONIVEL,  description: "Exemplar em bom estado." },
-        { fk_book_id: 3n, fk_bookcase_id: 3n, is_consult: true,  state: stateEnum.INDISPONIVEL, description: "Exemplar danificado, aguardando reparo." },
+        { fk_book_id: 3n, fk_bookcase_id: 3n, fk_institution_id: 2n,  is_virtual: false, is_consult: false, state: stateEnum.DISPONIVEL,  description: "Exemplar em bom estado." },
+        { fk_book_id: 3n, fk_bookcase_id: 3n, fk_institution_id: 2n,  is_virtual: false, is_consult: false, state: stateEnum.DISPONIVEL,  description: "Exemplar em bom estado." },
+        { fk_book_id: 3n, fk_bookcase_id: 3n, fk_institution_id: 2n,  is_virtual: false, is_consult: true,  state: stateEnum.INDISPONIVEL, description: "Exemplar danificado, aguardando reparo." },
 
         // Livro 4 - 2 cópias
-        { fk_book_id: 4n, fk_bookcase_id: 4n, is_consult: false, state: stateEnum.DISPONIVEL,  description: "Exemplar em bom estado." },
-        { fk_book_id: 4n, fk_bookcase_id: 4n, is_consult: false, state: stateEnum.EMPRESTADO,  description: "Exemplar com capa plastificada." },
+        { fk_book_id: 4n, fk_bookcase_id: 4n, fk_institution_id: 1n,  is_virtual: false, is_consult: false, state: stateEnum.DISPONIVEL,  description: "Exemplar em bom estado." },
+        { fk_book_id: 4n, fk_bookcase_id: 4n, fk_institution_id: 2n,  is_virtual: false, is_consult: false, state: stateEnum.EMPRESTADO,  description: "Exemplar com capa plastificada." },
 
         // Livro 5 - 2 cópias
-        { fk_book_id: 5n, fk_bookcase_id: 5n, is_consult: false, state: stateEnum.DISPONIVEL,  description: "Exemplar em bom estado." },
-        { fk_book_id: 5n, fk_bookcase_id: 5n, is_consult: true,  state: stateEnum.DISPONIVEL,  description: "Exemplar exclusivo para consulta local." },
+        { fk_book_id: 5n, fk_bookcase_id: 5n, fk_institution_id: 1n,  is_virtual: false, is_consult: false, state: stateEnum.DISPONIVEL,  description: "Exemplar em bom estado." },
+        { fk_book_id: 5n, fk_bookcase_id: 5n, fk_institution_id: 1n,  is_virtual: false, is_consult: true,  state: stateEnum.DISPONIVEL,  description: "Exemplar exclusivo para consulta local." },
     ];
 
     await prisma.book_Copy.createMany({

@@ -41,9 +41,10 @@ export async function getById(bookCopyIdS: string | string[]) {
 }
 
 export async function create(body: CreateBookCopyDTO) {
-    const { book, bookcase, ...rest} = body;
-    const bookId = body.book;
-    const bookcaseId = body.bookcase;
+    const { book, bookcase, institution, ...rest} = body;
+    const bookId = book;
+    const bookcaseId = bookcase;
+    const institutionId = institution;
 
     if (!bookId) {
         throw new AppError("ID do livro inválido.", HTTPCODES.BADREQUEST);
@@ -70,7 +71,8 @@ export async function create(body: CreateBookCopyDTO) {
             data: {
                 ...rest,
                 book: { connect: { id_book: bookId } },
-                bookcase: { connect: { id_bookcase: bookcaseId } }
+                bookcase: { connect: { id_bookcase: bookcaseId } },
+                institution: { connect: { id_institution: institutionId } }
             }
         });
     })
@@ -78,8 +80,10 @@ export async function create(body: CreateBookCopyDTO) {
 
 export async function update(bookCopyIdS: string | string[], body: UpdateBookCopyDTO) {
     const bookCopyId = returnNumberedID(bookCopyIdS);
-    const { bookcase, ...rest } = body;
+
+    const { bookcase, institution, ...rest } = body;
     const bookcaseId = bookcase;
+    const institutionId = institution;
 
     if (!bookCopyId) {
         throw new AppError("ID da cópia do livro inválido.", HTTPCODES.BADREQUEST);
@@ -104,6 +108,7 @@ export async function update(bookCopyIdS: string | string[], body: UpdateBookCop
             where: { id_book_copy: bookCopyId },
             data: {
                 ...rest,
+                ...(institutionId && { institution: { connect: { id_institution: institutionId } } }),
                 ...(bookcaseId && { bookcase: { connect: { id_bookcase: bookcaseId } } })
             }
         });
@@ -150,6 +155,27 @@ export async function changeBookCopyState(bookCopyIdS: string | string[], newSta
             state: newState
         }
     })
+}
+
+export async function changeBookCopyVirtual(bookCopyIdS: string | string[]) {
+    const bookCopyId = returnNumberedID(bookCopyIdS);
+
+    if (!bookCopyId) {
+        throw new AppError("ID da cópia do livro inválido", HTTPCODES.BADREQUEST);
+    }
+
+    const copyBookExists = await repository.book_Copy.findUnique({where: {id_book_copy: bookCopyId}});
+
+    if (!copyBookExists) {
+        throw new AppError("Cópia do livro não encontrada.", HTTPCODES.NOTFOUND);
+    }
+
+    return repository.book_Copy.update({
+        where: { id_book_copy: bookCopyId },
+        data: {
+            is_virtual: !copyBookExists.is_virtual
+        }
+    });
 }
 
 export async function changeBookCopyConsult(bookCopyIdS: string | string[]) {

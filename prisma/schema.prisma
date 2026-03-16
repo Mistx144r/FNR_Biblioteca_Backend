@@ -104,15 +104,24 @@ model Bookcase {
 }
 
 model Book_Copy {
-  id_book_copy   BigInt    @id @default(autoincrement())
-  fk_book_id     BigInt
-  fk_bookcase_id BigInt
-  is_consult     Boolean   @default(false)
-  state          stateEnum @default(DISPONIVEL) // Nullable
-  description    String?   @db.Text // Nullable
+  id_book_copy      BigInt    @id @default(autoincrement())
+  fk_book_id        BigInt
+  fk_bookcase_id    BigInt
+  fk_institution_id BigInt
+  is_consult        Boolean   @default(false)
+  state             stateEnum @default(DISPONIVEL)
+  is_virtual        Boolean   @default(false)
+  description       String?   @db.Text // Nullable
 
-  bookcase Bookcase @relation(fields: [fk_bookcase_id], references: [id_bookcase])
-  book     Book     @relation(fields: [fk_book_id], references: [id_book])
+  bookcase    Bookcase    @relation(fields: [fk_bookcase_id], references: [id_bookcase])
+  book        Book        @relation(fields: [fk_book_id], references: [id_book])
+  institution Institution @relation(fields: [fk_institution_id], references: [id_institution])
+}
+
+model Institution {
+  id_institution BigInt      @id @default(autoincrement())
+  name           String      @db.VarChar(255)
+  bookCopies     Book_Copy[]
 }
 
 model Category {

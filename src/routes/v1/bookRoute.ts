@@ -2,6 +2,7 @@ import express = require("express");
 import { workerAuthMiddleware } from "../../middlewares/workerAuthMiddleware";
 import { requireRole } from "../../middlewares/requiredRoleMiddleware";
 import * as bookController from "../../controllers/bookController";
+import {getAllBookCopiesWithBookId_AllInfo} from "../../controllers/bookController";
 
 const router = express.Router();
 
@@ -9,7 +10,7 @@ const router = express.Router();
 router.get("/", bookController.getAll);
 router.get("/:id", bookController.getById);
 router.get("/:id/everything", bookController.getBookAllInfoById);
-router.get("/:id/bookcopies", bookController.getAllBookCopiesWithBookId);
+router.get("/:id/bookcopies/everything", bookController.getAllBookCopiesWithBookId_AllInfo);
 
 router.post("/", workerAuthMiddleware, requireRole(["Administrador", "Bibliotecário"]), bookController.create);
 

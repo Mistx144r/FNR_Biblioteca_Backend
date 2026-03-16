@@ -49,6 +49,12 @@ export const changeBookCopyState = asyncHandler(async (req: Request, res: Respon
     res.status(HTTPCODES.OK).json(serializeBigInt(changeBookCopyState));
 });
 
+export const changeBookCopyVirtual = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const changeBookCopyVirtual = await bookcopyService.changeBookCopyVirtual(id);
+    res.status(HTTPCODES.OK).json(serializeBigInt(changeBookCopyVirtual));
+});
+
 export const changeBookCopyConsult = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const changeBookCopyConsult = await bookcopyService.changeBookCopyConsult(id);

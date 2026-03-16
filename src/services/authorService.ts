@@ -32,10 +32,6 @@ export async function getById(authorIdS: string | string[]) {
 }
 
 export async function create(body: CreateAuthorDTO)  {
-    if (!body.name) {
-        throw new AppError("O nome do Autor está faltando.", HTTPCODES.BADREQUEST);
-    }
-
     const alreadyExists = await repository.author.findFirst({
         where: { name: body.name }
     });
@@ -48,10 +44,6 @@ export async function create(body: CreateAuthorDTO)  {
 }
 
 export async function update(authorIdS: string | string[], body: UpdateAuthorDTO) {
-    if (!body.name) {
-        throw new AppError("O nome do Autor está faltando.", HTTPCODES.BADREQUEST);
-    }
-
     const authorId = returnNumberedID(authorIdS);
 
     if (!authorId) {

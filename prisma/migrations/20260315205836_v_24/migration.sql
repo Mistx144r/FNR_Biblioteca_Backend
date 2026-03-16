@@ -11,7 +11,7 @@ CREATE TABLE "Worker" (
     "telephone" VARCHAR(9),
     "cellphone" VARCHAR(15) NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Worker_pkey" PRIMARY KEY ("id_worker")
 );
@@ -47,7 +47,7 @@ CREATE TABLE "Book" (
     "bookcover" TEXT,
     "published_at" DATE NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Book_pkey" PRIMARY KEY ("id_book")
 );
@@ -93,11 +93,21 @@ CREATE TABLE "Book_Copy" (
     "id_book_copy" BIGSERIAL NOT NULL,
     "fk_book_id" BIGINT NOT NULL,
     "fk_bookcase_id" BIGINT NOT NULL,
+    "fk_institution_id" BIGINT NOT NULL,
     "is_consult" BOOLEAN NOT NULL DEFAULT false,
     "state" "stateEnum" NOT NULL DEFAULT 'DISPONIVEL',
+    "is_virtual" BOOLEAN NOT NULL DEFAULT false,
     "description" TEXT,
 
     CONSTRAINT "Book_Copy_pkey" PRIMARY KEY ("id_book_copy")
+);
+
+-- CreateTable
+CREATE TABLE "Institution" (
+    "id_institution" BIGSERIAL NOT NULL,
+    "name" VARCHAR(255) NOT NULL,
+
+    CONSTRAINT "Institution_pkey" PRIMARY KEY ("id_institution")
 );
 
 -- CreateTable
@@ -172,6 +182,9 @@ ALTER TABLE "Book_Copy" ADD CONSTRAINT "Book_Copy_fk_bookcase_id_fkey" FOREIGN K
 
 -- AddForeignKey
 ALTER TABLE "Book_Copy" ADD CONSTRAINT "Book_Copy_fk_book_id_fkey" FOREIGN KEY ("fk_book_id") REFERENCES "Book"("id_book") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Book_Copy" ADD CONSTRAINT "Book_Copy_fk_institution_id_fkey" FOREIGN KEY ("fk_institution_id") REFERENCES "Institution"("id_institution") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Sub_Categories_Of_Book" ADD CONSTRAINT "Sub_Categories_Of_Book_fk_sub_category_fkey" FOREIGN KEY ("fk_sub_category") REFERENCES "Sub_Category"("id_sub_category") ON DELETE CASCADE ON UPDATE CASCADE;

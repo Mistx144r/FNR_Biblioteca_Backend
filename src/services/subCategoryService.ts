@@ -31,10 +31,6 @@ export async function getById(subCategoryIdS: string | string[]) {
 }
 
 export async function create(body: CreateSubCategoryDTO) {
-    if (!body.name) {
-        throw new AppError("O nome da Sub-Categoria está faltando.", HTTPCODES.BADREQUEST);
-    }
-
     const alreadyExists = await repository.sub_Category.findFirst({
         where: { name: body.name }
     });

@@ -31,10 +31,6 @@ export async function getById(categoryIdS: string | string[]) {
 }
 
 export async function create(body: CreateCategoryDTO) {
-    if (!body.name) {
-        throw new AppError("O nome da Categoria está faltando.", HTTPCODES.BADREQUEST);
-    }
-
     const alreadyExists = await prisma.category.findFirst({where: {name: body.name}});
 
     if (alreadyExists) {
@@ -47,10 +43,6 @@ export async function create(body: CreateCategoryDTO) {
 export async function update(categoryIdS: string | string[], body: UpdateCategoryDTO) {
     const { name } = body;
     const categoryId = returnNumberedID(categoryIdS);
-
-    if (!name) {
-        throw new AppError("O nome da Categoria está faltando.", HTTPCODES.BADREQUEST);
-    }
 
     if (!categoryId) {
         throw new AppError("ID da Categoria inválido.", HTTPCODES.BADREQUEST);

@@ -26,11 +26,6 @@ const repository = prisma;
 //================================
 // Utils
 //================================
-function haveAllRequiredData(data: CreateWorkerDTO) {
-    const { name, cpf, email, cellphone, password } = data;
-    return !(!name || !cpf || !email || !cellphone || !password);
-}
-
 function isCPFValid(unverifiedCPF: string): boolean {
     const cpf = unverifiedCPF.replace(/\D/g, "");
 
@@ -117,11 +112,6 @@ export async function getWorkerAllInfoById(workerIdS: string | string[]) {
 
 export async function create(body: CreateWorkerDTO) {
     const { cpf, email, password } = body;
-
-    // CPF, Email, Password, Cellphone, Password
-    if (!haveAllRequiredData(body)) {
-        throw new AppError("Dados insuficientes para a criação do Funcionário.", HTTPCODES.BADREQUEST);
-    }
 
     const alreadyExists = await repository.worker.findFirst({where: {OR: [{cpf: cpf}, {email: email}]}});
 

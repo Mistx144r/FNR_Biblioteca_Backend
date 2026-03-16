@@ -26,16 +26,8 @@ const repository = prisma;
 //================================
 // Reminders
 //================================
-// 1. Talvez adicionar uma paginacao no retorno dos Book Copies.
+// 1. Talvez adicionar uma paginação no retorno dos Book Copies.
 // 2. ...
-
-//================================
-// Utils
-//================================
-function haveAllRequiredData(data: UpdateBookDTO) {
-    const { name, isbn, description, publisher, language, edition, pages, category } = data;
-    return !(!name || !isbn || !description || !publisher || !language || !edition || !pages || !category);
-}
 
 //================================
 // Single Book Caching
@@ -160,7 +152,7 @@ export async function getAllBookInfoById(idBookS: string | string[]) {
     };
 }
 
-export async function getAllBookCopiesWithBookId(bookIdS: string | string[]) {
+export async function getAllBookCopiesWithBookId_AllInfo(bookIdS: string | string[]) {
     const bookId = returnNumberedID(bookIdS);
 
     if (!bookId) {
@@ -176,6 +168,7 @@ export async function getAllBookCopiesWithBookId(bookIdS: string | string[]) {
     return repository.book_Copy.findMany({
         where: { fk_book_id: bookId },
         include: {
+            institution: true,
             bookcase: {
                 include: {
                     sector: true
@@ -188,10 +181,6 @@ export async function getAllBookCopiesWithBookId(bookIdS: string | string[]) {
 export async function create(body: CreateBookDTO){
     const { isbn, category } = body;
     const categoryId = category;
-
-    if (!haveAllRequiredData(body)) {
-        throw new AppError("Dados insuficientes para a criação do Livro.", HTTPCODES.BADREQUEST);
-    }
 
     if (!categoryId) {
         throw new AppError("ID da Categoria inválido.", HTTPCODES.BADREQUEST);
@@ -225,14 +214,9 @@ export async function create(body: CreateBookDTO){
 export async function update(idBookS: string | string[], body: UpdateBookDTO) {
     const { category, published_at, ...rest } = body;
     const idBook = returnNumberedID(idBookS);
-    const categoryId = body.category;
 
     if (!idBook) {
         throw new AppError("ID do Livro inválido.", HTTPCODES.BADREQUEST);
-    }
-
-    if (body.category !== undefined && !categoryId) {
-        throw new AppError("ID da Categoria inválido.", HTTPCODES.BADREQUEST);
     }
 
     return repository.$transaction(async(tx) => {
@@ -242,8 +226,8 @@ export async function update(idBookS: string | string[], body: UpdateBookDTO) {
             throw new AppError("Livro não encontrado.", HTTPCODES.NOTFOUND);
         }
 
-        if (categoryId) {
-            const doesCategoryExists = await tx.category.findUnique({where: {id_category: categoryId}});
+        if (category) {
+            const doesCategoryExists = await tx.category.findUnique({where: {id_category: category}});
 
             if (!doesCategoryExists) {
                 throw new AppError("Categoria não encontrada.", HTTPCODES.NOTFOUND);
@@ -271,7 +255,7 @@ export async function update(idBookS: string | string[], body: UpdateBookDTO) {
             data: {
                 ...rest,
                 ...(published_at && { published_at: new Date(published_at) }),
-                ...(categoryId && { category: { connect: { id_category: categoryId } } })
+                ...(category && { category: { connect: { id_category: category } } })
             }
         });
 

@@ -21,6 +21,7 @@ router.delete("/:id", workerAuthMiddleware, requireRole(["Administrador", "Bibli
 // Copy Book Utils Functions
 //==============================
 router.patch("/state/:id", workerAuthMiddleware, requireRole(["Administrador", "Bibliotecário"]), bookcopyController.changeBookCopyState);
+router.patch("/virtual/:id", workerAuthMiddleware, requireRole(["Administrador", "Bibliotecário"]), bookcopyController.changeBookCopyVirtual);
 router.patch("/consult/:id", workerAuthMiddleware, requireRole(["Administrador", "Bibliotecário"]), bookcopyController.changeBookCopyConsult);
 
 export default router;

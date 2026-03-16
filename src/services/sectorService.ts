@@ -56,14 +56,9 @@ export async function create(body: CreateSectorDTO) {
 export async function update(sectorIds: string | string[], body: UpdateSectorDTO) {
     const { category, ...rest } = body;
     const sectorId = returnNumberedID(sectorIds);
-    const categoryId = body.category
 
     if (!sectorId) {
         throw new AppError("ID do Setor inválido.", HTTPCODES.BADREQUEST);
-    }
-
-    if (body.category !== undefined && !categoryId) {
-        throw new AppError("ID da Categoria inválido.", HTTPCODES.BADREQUEST);
     }
 
     const alreadyExists = await prisma.sector.findFirst({where: {OR: [{name: body.name}, {letter: body.letter}]}});
@@ -72,8 +67,8 @@ export async function update(sectorIds: string | string[], body: UpdateSectorDTO
         throw new AppError("Um Setor já existe com essa letra.", HTTPCODES.BADREQUEST);
     }
 
-    if (categoryId) {
-        const categoryExists = await prisma.category.findUnique({ where: { id_category: categoryId } });
+    if (category) {
+        const categoryExists = await prisma.category.findUnique({ where: { id_category: category } });
 
         if (!categoryExists) {
             throw new AppError("Categoria não encontrada.", HTTPCODES.NOTFOUND);
@@ -90,7 +85,7 @@ export async function update(sectorIds: string | string[], body: UpdateSectorDTO
         where: { id_sector: sectorId },
         data: {
             ...rest,
-            ...(categoryId && { category: { connect: { id_category: categoryId } } })
+            ...(category && { category: { connect: { id_category: category } } })
         }
     });
 }
