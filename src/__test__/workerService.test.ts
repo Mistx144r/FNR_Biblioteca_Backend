@@ -1,4 +1,5 @@
 import request from "supertest";
+import {env} from "../schemas/envSchema";
 import { app } from "../testApp";
 import { HTTPCODES } from "../utils/httpCodes";
 import { generateTestToken } from "./helpers/generateToken";
@@ -308,7 +309,7 @@ describe("DELETE /api/v1/workers/:id/roles/:idRole", () => {
 // POST /api/v1/workers/auth/login
 // ----------------------------------------------------------------
 describe("POST /api/v1/workers/auth/login", () => {
-    it("Deve retornar erro pois o email não existe. STATUS: 404", async () => {
+    it("Deve retornar erro pois o email não existe. STATUS: 401", async () => {
         const response = await request(app)
             .post("/api/v1/workers/auth/login")
             .send({
@@ -316,7 +317,7 @@ describe("POST /api/v1/workers/auth/login", () => {
                 password: "Senha@123"
             });
 
-        expect(response.status).toBe(HTTPCODES.NOTFOUND);
+        expect(response.status).toBe(HTTPCODES.UNAUTHORIZED);
     });
 
     it("Deve retornar erro pois a senha está incorreta. STATUS: 401", async () => {
@@ -361,7 +362,7 @@ describe("POST /api/v1/workers/auth/refresh", () => {
     it("Deve retornar erro pois o refresh token está expirado. STATUS: 401", async () => {
         const expiredRefreshToken = require("jsonwebtoken").sign(
             { id: "1", name: "Teste", roles: ["Administrador"] },
-            String(process.env.JWTSECRETKEY),
+            String(env.JWTSECRETKEY),
             { expiresIn: "0s" }
         );
 
@@ -395,7 +396,7 @@ describe("DELETE /api/v1/workers/auth/logout", () => {
     it("Deve retornar erro pois o access token está expirado. STATUS: 401", async () => {
         const expiredToken = require("jsonwebtoken").sign(
             { id: "1", name: "Teste", roles: ["Administrador"] },
-            String(process.env.JWTSECRETKEY),
+            String(env.JWTSECRETKEY),
             { expiresIn: "0s" }
         );
 

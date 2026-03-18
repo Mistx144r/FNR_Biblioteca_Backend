@@ -1,19 +1,23 @@
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { Book } from "@prisma/client";
-import { createBookSchema, updateBookSchema } from "../schemas/bookSchema";
+import { env } from "../schemas/envSchema";
+import { createBookSchema, updateBookSchema, bookFilterSchema } from "../schemas/bookSchema";
 import { prisma } from "../utils/prisma";
 import { redis } from "../utils/redis";
 import { serializeBigInt, returnNumberedID } from "../utils/utils";
+import { searchBooksByNameWithFuzzy } from "../utils/bookSearch";
 import { AppError } from "../errors/AppError";
 import { HTTPCODES } from "../utils/httpCodes";
 
 type CreateBookDTO = z.infer<typeof createBookSchema>;
 type UpdateBookDTO = z.infer<typeof updateBookSchema>;
+type PossibleFilters = z.infer<typeof bookFilterSchema>;
 type PaginatedReturnData = {
     data: Book[],
     meta: {
         total: number
-        pages: number
+        page: number
         limit: number
         totalPages: number
         hasNextPage: boolean,
@@ -33,46 +37,47 @@ const repository = prisma;
 // Single Book Caching
 //================================
 function isBookInCache(bookId: number) {
-    return redis.exists(`${process.env.NODE_ENV}:Book:${bookId}`);
+    return redis.exists(`${env.NODE_ENV}:Book:${bookId}`);
 }
 
 function saveBookInCache(bookId: number, data: Book) {
-    return redis.multi().set(`${process.env.NODE_ENV}:Book:${bookId}`, JSON.stringify(serializeBigInt(data))).expire(`${process.env.NODE_ENV}:Book:${bookId}`, 1800).exec();
+    return redis.multi().set(`${env.NODE_ENV}:Book:${bookId}`, JSON.stringify(serializeBigInt(data))).expire(`${env.NODE_ENV}:Book:${bookId}`, 1800).exec();
 }
 
 async function returnCachedBook(bookId: number) {
-    const data = await redis.get(`${process.env.NODE_ENV}:Book:${bookId}`);
+    const data = await redis.get(`${env.NODE_ENV}:Book:${bookId}`);
     return JSON.parse(data!);
 }
 
 function invalidateCachedBook(bookId: number) {
-    return redis.del(`${process.env.NODE_ENV}:Book:${bookId}`);
+    return redis.del(`${env.NODE_ENV}:Book:${bookId}`);
 }
 
 //================================
 // Paginated Books Caching
 //================================
 function isPaginatedBooksInCache(page: number, limit: number) {
-    return redis.exists(`${process.env.NODE_ENV}:Book:${page}:${limit}`);
+    return redis.exists(`${env.NODE_ENV}:Book:${page}:${limit}`);
 }
 
 function savePaginatedBooksInCache(pages: number, limit: number, data: PaginatedReturnData) {
-    return redis.multi().set(`${process.env.NODE_ENV}:Book:${pages}:${limit}`, JSON.stringify(serializeBigInt(data))).expire(`${process.env.NODE_ENV}:Book:${pages}:${limit}`, 900).exec();
+    return redis.multi().set(`${env.NODE_ENV}:Book:${pages}:${limit}`, JSON.stringify(serializeBigInt(data))).expire(`${env.NODE_ENV}:Book:${pages}:${limit}`, 900).exec();
 }
 
 async function returnCachedPaginatedBooks(page: number, limit: number) {
-    const data = await redis.get(`${process.env.NODE_ENV}:Book:${page}:${limit}`);
-    return JSON.parse(data!); // A Exclamacao avisa que os dados podem estar nulos.
+    const data = await redis.get(`${env.NODE_ENV}:Book:${page}:${limit}`);
+    return JSON.parse(data!); // A exclamação avisa que os dados podem estar nulos.
 }
 
 //================================
 // Main Book Functions
 //================================
-export async function getAll(pageS: string = "1", limitS: string = "10") {
-    const pages = Number(pageS);
+export async function getAll(pageS: string = "1", limitS: string = "10", possibleFilters: PossibleFilters) {
+    const page = Number(pageS);
     const limit = Number(limitS);
+    const hasFilters = possibleFilters && Object.values(possibleFilters).some(v => v !== undefined);
 
-    if (!pages) {
+    if (!page) {
         throw new AppError("O valor enviado de Páginas é inválido ou igual a zero (0). 💀🔥🔥 (Erro souvenir)", HTTPCODES.BADREQUEST);
     }
 
@@ -80,38 +85,69 @@ export async function getAll(pageS: string = "1", limitS: string = "10") {
         throw new AppError("O valor enviado para o Limite é inválido ou igual a zero (0). 💀🔥🔥 (Erro souvenir)", HTTPCODES.BADREQUEST);
     }
 
-    if ((pages > 50 || pages < 0) || (limit > 50 || limit < 0)) {
+    if ((page > 50 || page < 0) || (limit > 50 || limit < 0)) {
         throw new AppError("O valor das Páginas ou Limite não pode ser maior que 50 ou menor que zero (0)", HTTPCODES.BADREQUEST);
     }
 
-    const skip = (pages - 1) * limit;
+    const skip = (page - 1) * limit;
 
-    if (await isPaginatedBooksInCache(pages, limit)) {
-        return await returnCachedPaginatedBooks(pages, limit);
+    if (await isPaginatedBooksInCache(page, limit) && !hasFilters) {
+        return await returnCachedPaginatedBooks(page, limit);
     }
+
+    if (possibleFilters?.name) {
+        return await searchBooksByNameWithFuzzy(prisma, skip, limit, possibleFilters);
+    }
+
+    const where: Prisma.BookWhereInput = {
+        ...(possibleFilters?.isbn && {
+            isbn: { contains: possibleFilters.isbn, mode: Prisma.QueryMode.insensitive }
+        }),
+        fk_category_id: possibleFilters.category,
+        language: possibleFilters?.language,
+        edition: possibleFilters.edition,
+        ...(possibleFilters?.published_at && { published_at: possibleFilters.published_at }),
+    };
 
     const [books, total] = await Promise.all([
         repository.book.findMany({
             skip,
             take: limit,
-            orderBy: { id_book: "asc" }
+            orderBy: { id_book: "asc" },
+            where,
+            include: {
+                category: true,
+                Authors_In_Book: {
+                    include: {
+                        author: true
+                    }
+                }
+            }
         }),
-        repository.book.count()
+        repository.book.count({ where })
     ]);
 
+    const booksWithAuthors = books.map(book => ({
+        ...book,
+        authors: book.Authors_In_Book.map(a => a.author),
+        Authors_In_Book: undefined
+    }));
+
     const data = {
-        data: books,
+        data: booksWithAuthors,
         meta: {
             total,
-            pages,
+            page,
             limit,
             totalPages: Math.ceil(total / limit),
-            hasNextPage: pages < Math.ceil(total / limit),
-            hasPreviousPage: pages > 1
+            hasNextPage: page < Math.ceil(total / limit),
+            hasPreviousPage: page > 1
         }
     }
 
-    await savePaginatedBooksInCache(pages, limit, data);
+    if (!hasFilters) {
+        await savePaginatedBooksInCache(page, limit, data);
+    }
 
     return data;
 }
@@ -202,7 +238,7 @@ export async function create(body: CreateBookDTO){
         return tx.book.create({
             data: {
                 ...body,
-                published_at: new Date(body.published_at as string),
+                published_at: body.published_at,
                 category: {
                     connect: { id_category: categoryId }
                 }
@@ -242,19 +278,11 @@ export async function update(idBookS: string | string[], body: UpdateBookDTO) {
             }
         }
 
-        if (body.published_at !== undefined) {
-            const date = new Date(body.published_at as string);
-
-            if (isNaN(date.getTime())) {
-                throw new AppError("A data enviada é inválida.", HTTPCODES.BADREQUEST);
-            }
-        }
-
         const updatedBook = tx.book.update({
             where: { id_book: idBook },
             data: {
                 ...rest,
-                ...(published_at && { published_at: new Date(published_at) }),
+                ...(published_at && { published_at: body.published_at }),
                 ...(category && { category: { connect: { id_category: category } } })
             }
         });

@@ -94,20 +94,19 @@ export async function seedRoles() {
 export async function seedAuthors() {
     const authors = [
         { name: "Robert C. Martin" },
-        { name: "Martin Fowler" },
-        { name: "Eric Evans" },
-        { name: "Kent Beck" },
         { name: "Andrew Hunt" },
         { name: "David Thomas" },
-        { name: "Donald Knuth" },
         { name: "Erich Gamma" },
         { name: "Richard Helm" },
         { name: "Ralph Johnson" },
         { name: "John Vlissides" },
-        { name: "Grady Booch" },
-        { name: "Bjarne Stroustrup" },
-        { name: "Linus Torvalds" },
-        { name: "Brian Kernighan" },
+        { name: "Eric Evans" },
+        { name: "Thomas H. Cormen" },
+        { name: "Charles E. Leiserson" },
+        { name: "Ronald L. Rivest" },
+        { name: "Clifford Stein" },
+        { name: "Michael T. Goodrich" },
+        { name: "Roberto Tamassia" },
     ];
 
     await prisma.author.createMany({
@@ -126,7 +125,7 @@ export async function seedBooks() {
             description: "Um guia de boas práticas para escrever código limpo e legível.",
             publisher: "Prentice Hall",
             language: "pt-BR",
-            fk_category_id: BigInt(5),
+            fk_category_id: 5n,
             edition: 1,
             pages: 431,
             bookcover: "https://covers.openlibrary.org/b/isbn/9780132350884-L.jpg",
@@ -138,7 +137,7 @@ export async function seedBooks() {
             description: "Um guia sobre estruturação de sistemas de software.",
             publisher: "Prentice Hall",
             language: "pt-BR",
-            fk_category_id: BigInt(5),
+            fk_category_id: 5n,
             edition: 1,
             pages: 432,
             bookcover: "https://covers.openlibrary.org/b/isbn/9780134494166-L.jpg",
@@ -150,7 +149,7 @@ export async function seedBooks() {
             description: "Conselhos práticos para desenvolvedores de software.",
             publisher: "Addison-Wesley",
             language: "en-US",
-            fk_category_id: BigInt(5),
+            fk_category_id: 5n,
             edition: 2,
             pages: 352,
             bookcover: "https://covers.openlibrary.org/b/isbn/9780135957059-L.jpg",
@@ -162,7 +161,7 @@ export async function seedBooks() {
             description: "Soluções reutilizáveis para problemas comuns em software.",
             publisher: "Addison-Wesley",
             language: "en-US",
-            fk_category_id: BigInt(5),
+            fk_category_id: 5n,
             edition: 1,
             pages: 395,
             bookcover: "https://covers.openlibrary.org/b/isbn/9780201633610-L.jpg",
@@ -174,7 +173,7 @@ export async function seedBooks() {
             description: "Abordagem para o desenvolvimento de software complexo.",
             publisher: "Addison-Wesley",
             language: "en-US",
-            fk_category_id: BigInt(5),
+            fk_category_id: 5n,
             edition: 1,
             pages: 560,
             bookcover: "https://covers.openlibrary.org/b/isbn/9780321125217-L.jpg",
@@ -186,7 +185,7 @@ export async function seedBooks() {
             description: "O livro mais completo sobre algoritmos e estruturas de dados.",
             publisher: "Campus",
             language: "pt-BR",
-            fk_category_id: BigInt(2),
+            fk_category_id: 2n,
             edition: 3,
             pages: 926,
             bookcover: "https://covers.openlibrary.org/b/isbn/9788535236996-L.jpg",
@@ -198,7 +197,7 @@ export async function seedBooks() {
             description: "Fundamentos de estruturas de dados com implementações em Java.",
             publisher: "Bookman",
             language: "pt-BR",
-            fk_category_id: BigInt(2),
+            fk_category_id: 2n,
             edition: 6,
             pages: 736,
             bookcover: "https://covers.openlibrary.org/b/isbn/9788582605837-L.jpg",
@@ -210,7 +209,7 @@ export async function seedBooks() {
             description: "De aprendiz a mestre no desenvolvimento de software.",
             publisher: "Bookman",
             language: "pt-BR",
-            fk_category_id: BigInt(5),
+            fk_category_id: 5n,
             edition: 1,
             pages: 296,
             bookcover: "https://covers.openlibrary.org/b/isbn/9788577807048-L.jpg",
@@ -385,4 +384,93 @@ export async function seedBookCopies() {
     });
 
     console.log("✅ Book Copies seed concluído!");
+}
+
+export async function seedAuthorsInBooks() {
+    // Busca os IDs dos livros e autores pelo nome/isbn
+    const [
+        cleanCode, cleanArch, pragProg, designPatterns, ddd,
+        introAlgo, estDados, progPragPtBr
+    ] = await Promise.all([
+        prisma.book.findUnique({ where: { isbn: "9780132350884" } }),
+        prisma.book.findUnique({ where: { isbn: "9780134494166" } }),
+        prisma.book.findUnique({ where: { isbn: "9780135957059" } }),
+        prisma.book.findUnique({ where: { isbn: "9780201633610" } }),
+        prisma.book.findUnique({ where: { isbn: "9780321125217" } }),
+        prisma.book.findUnique({ where: { isbn: "9788535236996" } }),
+        prisma.book.findUnique({ where: { isbn: "9788582605837" } }),
+        prisma.book.findUnique({ where: { isbn: "9788577807048" } }),
+    ]);
+
+    const [
+        martinId, huntId, thomasId,
+        gammaId, helmId, johnsonId, vlissidesId,
+        evansId, cormenId, leisersonId, rivestId, steinId,
+        goodrichId, tamassiaId
+    ] = await Promise.all([
+        prisma.author.findFirst({ where: { name: "Robert C. Martin" } }),
+        prisma.author.findFirst({ where: { name: "Andrew Hunt" } }),
+        prisma.author.findFirst({ where: { name: "David Thomas" } }),
+        prisma.author.findFirst({ where: { name: "Erich Gamma" } }),
+        prisma.author.findFirst({ where: { name: "Richard Helm" } }),
+        prisma.author.findFirst({ where: { name: "Ralph Johnson" } }),
+        prisma.author.findFirst({ where: { name: "John Vlissides" } }),
+        prisma.author.findFirst({ where: { name: "Eric Evans" } }),
+        prisma.author.findFirst({ where: { name: "Thomas H. Cormen" } }),
+        prisma.author.findFirst({ where: { name: "Charles E. Leiserson" } }),
+        prisma.author.findFirst({ where: { name: "Ronald L. Rivest" } }),
+        prisma.author.findFirst({ where: { name: "Clifford Stein" } }),
+        prisma.author.findFirst({ where: { name: "Michael T. Goodrich" } }),
+        prisma.author.findFirst({ where: { name: "Roberto Tamassia" } }),
+    ]);
+
+    const relations = [
+        // Clean Code → Robert C. Martin
+        { fk_book_id: cleanCode!.id_book, fk_author_id: martinId!.id_author },
+
+        // Clean Architecture → Robert C. Martin
+        { fk_book_id: cleanArch!.id_book, fk_author_id: martinId!.id_author },
+
+        // The Pragmatic Programmer → Andrew Hunt, David Thomas
+        { fk_book_id: pragProg!.id_book, fk_author_id: huntId!.id_author },
+        { fk_book_id: pragProg!.id_book, fk_author_id: thomasId!.id_author },
+
+        // Design Patterns → Gang of Four
+        { fk_book_id: designPatterns!.id_book, fk_author_id: gammaId!.id_author },
+        { fk_book_id: designPatterns!.id_book, fk_author_id: helmId!.id_author },
+        { fk_book_id: designPatterns!.id_book, fk_author_id: johnsonId!.id_author },
+        { fk_book_id: designPatterns!.id_book, fk_author_id: vlissidesId!.id_author },
+
+        // Domain-Driven Design → Eric Evans
+        { fk_book_id: ddd!.id_book, fk_author_id: evansId!.id_author },
+
+        // Introdução aos Algoritmos → CLRS
+        { fk_book_id: introAlgo!.id_book, fk_author_id: cormenId!.id_author },
+        { fk_book_id: introAlgo!.id_book, fk_author_id: leisersonId!.id_author },
+        { fk_book_id: introAlgo!.id_book, fk_author_id: rivestId!.id_author },
+        { fk_book_id: introAlgo!.id_book, fk_author_id: steinId!.id_author },
+
+        // Estruturas de Dados → Goodrich, Tamassia
+        { fk_book_id: estDados!.id_book, fk_author_id: goodrichId!.id_author },
+        { fk_book_id: estDados!.id_book, fk_author_id: tamassiaId!.id_author },
+
+        // O Programador Pragmático PT-BR → Andrew Hunt, David Thomas
+        { fk_book_id: progPragPtBr!.id_book, fk_author_id: huntId!.id_author },
+        { fk_book_id: progPragPtBr!.id_book, fk_author_id: thomasId!.id_author },
+    ];
+
+    for (const relation of relations) {
+        await prisma.authors_In_Book.upsert({
+            where: {
+                fk_author_id_fk_book_id: {
+                    fk_author_id: relation.fk_author_id,
+                    fk_book_id: relation.fk_book_id
+                }
+            },
+            update: {},
+            create: relation,
+        });
+    }
+
+    console.log("✅ Authors in Books seed concluído!");
 }

@@ -8,6 +8,7 @@ import { returnNumberedID, serializeBigInt } from "../utils/utils";
 import { isWorkerRefreshTokenValid, revokeWorkerTokens, storeWorkerRefreshJWT } from "../utils/workerRedis";
 import { AppError } from "../errors/AppError";
 import { HTTPCODES } from "../utils/httpCodes";
+import { env } from "../schemas/envSchema";
 
 type CreateWorkerDTO = z.infer<typeof createWorkerSchema>;
 type UpdateWorkerDTO = z.infer<typeof updateWorkerSchema>;
@@ -26,6 +27,27 @@ const repository = prisma;
 //================================
 // Utils
 //================================
+function signWorkerAccessJWT(user: { id: number, roles: string[] }) {
+    return jwt.sign(
+        { id: user.id, roles: user.roles },
+        String(env.JWTSECRETKEY),
+        { expiresIn: "10m", issuer: "biblioteca-api", audience: "biblioteca-frontend"}
+    );
+}
+
+function signWorkerRefreshJWT(user: { id: number, roles: string[] }, lastingTTL?: number) {
+    return jwt.sign(
+        { id: user.id, roles: user.roles },
+        String(env.JWTSECRETKEY),
+        { expiresIn: lastingTTL ? lastingTTL : "7d", issuer: "biblioteca-api", audience: "biblioteca-frontend"}
+    );
+}
+
+async function returnUserRoles(workerId: number) {
+    const gotRoles = await getRoles(String(workerId));
+    return gotRoles.map(r => r.name);
+}
+
 function isCPFValid(unverifiedCPF: string): boolean {
     const cpf = unverifiedCPF.replace(/\D/g, "");
 
@@ -292,27 +314,23 @@ export async function login(body: LoginWorkerDTO) {
         throw new AppError("Credenciais inválidas.", HTTPCODES.UNAUTHORIZED);
     }
 
+    const workerId = serializeBigInt(worker.id_worker)
     const isCorrectPassword = await bcrypt.compare(password, worker.password);
 
     if (!isCorrectPassword) {
         throw new AppError("Credenciais inválidas.", HTTPCODES.UNAUTHORIZED);
     }
 
-    const gotRoles = await getRoles(String(worker.id_worker));
-    const organizedRoles = gotRoles.map(r => r.name);
+    const roles = await returnUserRoles(workerId);
+    const user = {
+        id: workerId,
+        roles: roles
+    }
 
-    const accessToken = jwt.sign({
-        id: serializeBigInt(worker.id_worker),
-        name: worker.name,
-        roles: organizedRoles
-    }, String(process.env.JWTSECRETKEY), {expiresIn: "10m"});
+    const accessToken = signWorkerAccessJWT(user);
+    const refreshToken = signWorkerRefreshJWT(user);
 
-    const refreshToken = jwt.sign({
-        id: serializeBigInt(worker.id_worker),
-        roles: organizedRoles
-    }, String(process.env.JWTSECRETKEY), {expiresIn: "7d"});
-
-    await storeWorkerRefreshJWT(serializeBigInt(worker.id_worker), refreshToken);
+    await storeWorkerRefreshJWT(workerId, refreshToken);
 
     return { accessToken, refreshToken }
 }
@@ -322,29 +340,24 @@ export async function refresh(browserRefreshToken: string) {
         throw new AppError("Refresh token não encontrado.", HTTPCODES.UNAUTHORIZED);
     }
 
-    const decoded = jwt.verify(browserRefreshToken, String(process.env.JWTSECRETKEY), {algorithms: ["HS256"]}) as WorkerJwtPayload;
+    const decoded = jwt.verify(browserRefreshToken, String(env.JWTSECRETKEY), {
+        issuer: "biblioteca-api",
+        audience: "biblioteca-frontend",
+        algorithms: ["HS256"]
+    }) as WorkerJwtPayload;
 
     if (!await isWorkerRefreshTokenValid(decoded.id, browserRefreshToken)) {
         throw new AppError("Refresh token inválido.", HTTPCODES.UNAUTHORIZED);
     }
 
-    const ttlRestante = decoded.exp! - Math.floor(Date.now() / 1000);
+    const lastingTTL = decoded.exp! - Math.floor(Date.now() / 1000); // Dividido por 1000 por que os tokens sao salvos em milisegundos
 
-    const newAccessToken = jwt.sign(
-        { id: decoded.id, roles: decoded.roles },
-        String(process.env.JWTSECRETKEY),
-        { expiresIn: "10m" }
-    );
+    const newAccessToken = signWorkerAccessJWT(decoded);
+    const newRefreshToken = signWorkerRefreshJWT(decoded, lastingTTL);
 
-    const newRefreshToken = jwt.sign(
-        { id: decoded.id, roles: decoded.roles },
-        String(process.env.JWTSECRETKEY),
-        { expiresIn: ttlRestante }
-    );
+    await storeWorkerRefreshJWT(decoded.id, newRefreshToken, lastingTTL);
 
-    await storeWorkerRefreshJWT(decoded.id, newRefreshToken, ttlRestante);
-
-    return { newAccessToken, newRefreshToken, ttlRestante };
+    return { newAccessToken, newRefreshToken, lastingTTL };
 }
 
 export async function logout(workerId: number | undefined) {

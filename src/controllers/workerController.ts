@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { env } from "../schemas/envSchema";
 import { createWorkerSchema, loginWorkerSchema, updateWorkerSchema } from "../schemas/workerSchema";
 import { serializeBigInt } from "../utils/utils";
 import { asyncHandler } from "../middlewares/asyncHandler";
@@ -74,17 +75,17 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
 
     res.cookie("accessToken", accessToken, {
        httpOnly: true,
-       secure: process.env.NODE_ENV === "production", // Vai setar true ou false dependendo se estiver em prod ou não.
-       sameSite: "strict",
-       maxAge: Number(process.env.ACCESSEXPIRETIMEINSECONDS) * 1000,
+       secure: env.NODE_ENV === "production", // Vai setar true ou false dependendo se estiver em prod ou não.
+       sameSite: "lax", // strict: bloqueia qualquer conexoes que venham de fora, lax: bloqueia conexoes que venha de fora do cors
+       maxAge: Number(env.ACCESSEXPIRETIMEINSECONDS) * 1000,
     });
 
     res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production", // Vai setar true ou false dependendo se estiver em prod ou não.
-        sameSite: "strict",
+        secure: env.NODE_ENV === "production",
+        sameSite: "lax",
         path: "/api/v1/workers/auth/refresh",
-        maxAge: Number(process.env.REFRESHEXPIRETIMEINSECONDS) * 1000,
+        maxAge: Number(env.REFRESHEXPIRETIMEINSECONDS) * 1000,
     });
 
     return res.status(HTTPCODES.OK).end();
@@ -92,21 +93,21 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
 
 export const refresh = asyncHandler(async (req: Request, res: Response) => {
     const refreshToken = req.cookies.refreshToken;
-    const { newAccessToken, newRefreshToken, ttlRestante } = await workerService.refresh(refreshToken);
+    const { newAccessToken, newRefreshToken, lastingTTL } = await workerService.refresh(refreshToken);
 
     res.cookie("accessToken", newAccessToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production", // Vai setar true ou false dependendo se estiver em prod ou não.
-        sameSite: "strict",
-        maxAge: Number(process.env.ACCESSEXPIRETIMEINSECONDS) * 1000,
+        secure: env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: Number(env.ACCESSEXPIRETIMEINSECONDS) * 1000,
     });
 
     res.cookie("refreshToken", newRefreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production", // Vai setar true ou false dependendo se estiver em prod ou não.
-        sameSite: "strict",
+        secure: env.NODE_ENV === "production",
+        sameSite: "lax",
         path: "/api/v1/workers/auth/refresh",
-        maxAge: ttlRestante * 1000,
+        maxAge: lastingTTL * 1000,
     });
 
     return res.status(HTTPCODES.OK).end();
@@ -114,7 +115,7 @@ export const refresh = asyncHandler(async (req: Request, res: Response) => {
 
 export const logout = asyncHandler(async(req: Request, res: Response) => {
     const workerId = req.user?.id;
-    const revokedToken = workerService.logout(workerId);
+    await workerService.logout(workerId);
 
     res.clearCookie("accessToken");
     res.clearCookie("refreshToken");

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { createBookSchema, updateBookSchema } from "../schemas/bookSchema";
+import { createBookSchema, updateBookSchema, bookFilterSchema } from "../schemas/bookSchema";
 import { serializeBigInt } from "../utils/utils";
 import { asyncHandler } from "../middlewares/asyncHandler";
 import { HTTPCODES } from "../utils/httpCodes";
@@ -8,7 +8,8 @@ import * as bookService from "../services/bookService";
 // Main Book Functions
 export const getAll = asyncHandler(async (req: Request, res: Response) => {
     const { page, limit } = req.query
-    const books = await bookService.getAll(page as string, limit as string);
+    const possibleFilters = bookFilterSchema.parse(req.query);
+    const books = await bookService.getAll(page as string, limit as string, possibleFilters);
     res.status(HTTPCODES.OK).json(serializeBigInt(books));
 });
 

@@ -1,8 +1,10 @@
 import { redis } from "./redis";
+import { env } from "../schemas/envSchema";
+import { timingSafeEqual } from "crypto"
 
 export async function storeWorkerRefreshJWT(workerId: number, userJWT: string, ttl?: number) {
-    const expiry = ttl ?? Number(process.env.REFRESHEXPIRETIMEINSECONDS);
-    const key = `${process.env.NODE_ENV}:${workerId}:refresh`;
+    const expiry = ttl ?? Number(env.REFRESHEXPIRETIMEINSECONDS);
+    const key = `${env.NODE_ENV}:${workerId}:refresh`;
 
     return redis.multi()
         .del(key)
@@ -12,9 +14,15 @@ export async function storeWorkerRefreshJWT(workerId: number, userJWT: string, t
 }
 
 export async function isWorkerRefreshTokenValid(workerId: number, browserRefreshToken: string) {
-    return (await redis.get(`${process.env.NODE_ENV}:${workerId}:refresh`) === browserRefreshToken);
+    const stored = await redis.get(`${env.NODE_ENV}:${workerId}:refresh`);
+    if (!stored) return false;
+
+    return timingSafeEqual(
+        Buffer.from(stored),
+        Buffer.from(browserRefreshToken)
+    );
 }
 
 export async function revokeWorkerTokens(workerId: number) {
-    return await redis.del(`${process.env.NODE_ENV}:${workerId}:refresh`);
+    return await redis.del(`${env.NODE_ENV}:${workerId}:refresh`);
 }

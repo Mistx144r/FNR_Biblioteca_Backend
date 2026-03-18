@@ -2,9 +2,9 @@ import { z } from "zod";
 import { stateEnum } from "@prisma/client";
 
 export const createBookCopySchema = z.object({
-    book: z.number().positive(),
-    bookcase: z.number().positive(),
-    institution: z.number().positive(),
+    book: z.coerce.number().positive(),
+    bookcase: z.coerce.number().positive(),
+    institution: z.coerce.number().positive(),
     is_consult: z.boolean(),
     is_virtual: z.boolean().optional(),
     state: z.enum(stateEnum).optional(),

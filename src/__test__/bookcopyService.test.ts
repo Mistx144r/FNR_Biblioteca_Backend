@@ -61,6 +61,8 @@ describe("POST /api/v1/bookcopies", () => {
             .send({
                 book: 999999999,
                 bookcase: 1,
+                institution: 1,
+                is_virtual: false,
                 is_consult: false,
                 state: "DISPONIVEL"
             });
@@ -74,7 +76,9 @@ describe("POST /api/v1/bookcopies", () => {
             .set("Cookie", `accessToken=${token}`)
             .send({
                 book: 1,
-                bookcase: 999999999,
+                bookcase: 99999999999,
+                institution: 1,
+                is_virtual: false,
                 is_consult: false,
                 state: "DISPONIVEL"
             });

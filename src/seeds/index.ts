@@ -11,6 +11,7 @@ async function main() {
     await seeds.seedBookcases();
     await seeds.seedInstitutions();
     await seeds.seedBookCopies();
+    await seeds.seedAuthorsInBooks();
 }
 
 main().then(() => console.log("Done!"));
