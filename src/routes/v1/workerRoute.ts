@@ -5,9 +5,9 @@ import { requireRole } from "../../middlewares/requiredRoleMiddleware";
 import * as workerController from "../../controllers/workerController";
 
 const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 10 minutos
-    limit: 10,
-    message: { message: "Muitas tentativas. Tente novamente mais tarde." }
+  windowMs: 15 * 60 * 1000, // 10 minutos
+  limit: 10,
+  message: { message: "Muitas tentativas. Tente novamente mais tarde." },
 });
 
 const router = express.Router();
@@ -17,20 +17,49 @@ const router = express.Router();
 //================================
 router.get("/", workerAuthMiddleware, workerController.getAll);
 router.get("/:id", workerAuthMiddleware, workerController.getById);
-router.get("/:id/everything", workerAuthMiddleware, workerController.getWorkerAllInfoById);
+router.get(
+  "/:id/everything",
+  workerAuthMiddleware,
+  workerController.getWorkerAllInfoById,
+);
 
-router.post("/", workerAuthMiddleware, requireRole(["Administrador"]), workerController.create);
+router.post(
+  "/",
+  workerAuthMiddleware,
+  requireRole(["Administrador"]),
+  workerController.create,
+);
 
-router.put("/:id", workerAuthMiddleware, requireRole(["Administrador"]), workerController.update);
+router.put(
+  "/:id",
+  workerAuthMiddleware,
+  requireRole(["Administrador"]),
+  workerController.update,
+);
 
-router.delete("/:id", workerAuthMiddleware, requireRole(["Administrador"]), workerController.deleteById);
+router.delete(
+  "/:id",
+  workerAuthMiddleware,
+  requireRole(["Administrador"]),
+  workerController.deleteById,
+);
 
 //================================
 // Role Functions
 //================================
 router.get("/:id/roles", workerAuthMiddleware, workerController.getRoles);
-router.post("/:idWorker/roles/:idRole", workerAuthMiddleware, requireRole(["Administrador"]), workerController.addRole);
-router.delete("/:idWorker/roles/:idRole", workerAuthMiddleware, requireRole(["Administrador"]), workerController.removeRole);
+router.post(
+  "/:idWorker/roles/:idRole",
+  workerAuthMiddleware,
+  requireRole(["Administrador"]),
+  workerController.addRole,
+);
+router.delete(
+  "/:idWorker/roles/:idRole",
+  workerAuthMiddleware,
+  requireRole(["Administrador"]),
+  workerController.removeRole,
+);
 
 //================================
 // Auth Functions
