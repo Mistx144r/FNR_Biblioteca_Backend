@@ -97,24 +97,15 @@ export async function getAll(pageS: string = "1", limitS: string = "10", possibl
     Object.values(possibleFilters).some((v) => v !== undefined);
 
   if (!page) {
-    throw new AppError(
-      "O valor enviado de Páginas é inválido ou igual a zero (0). 💀🔥🔥 (Erro souvenir)",
-      HTTPCODES.BADREQUEST,
-    );
+    throw new AppError("O valor enviado de Páginas é inválido ou igual a zero (0). 💀🔥🔥 (Erro souvenir)", HTTPCODES.BADREQUEST);
   }
 
   if (!limit) {
-    throw new AppError(
-      "O valor enviado para o Limite é inválido ou igual a zero (0). 💀🔥🔥 (Erro souvenir)",
-      HTTPCODES.BADREQUEST,
-    );
+    throw new AppError("O valor enviado para o Limite é inválido ou igual a zero (0). 💀🔥🔥 (Erro souvenir)", HTTPCODES.BADREQUEST);
   }
 
-  if (page > 50 || page < 0 || limit > 50 || limit < 0) {
-    throw new AppError(
-      "O valor das Páginas ou Limite não pode ser maior que 50 ou menor que zero (0)",
-      HTTPCODES.BADREQUEST,
-    );
+  if ((page > 50 || page < 0) || (limit > 50 || limit < 0)) {
+    throw new AppError("O valor das Páginas ou Limite não pode ser maior que 50 ou menor que zero (0)", HTTPCODES.BADREQUEST);
   }
 
   const skip = (page - 1) * limit;
@@ -124,12 +115,7 @@ export async function getAll(pageS: string = "1", limitS: string = "10", possibl
   }
 
   if (possibleFilters?.name) {
-    return await searchBooksByNameWithFuzzy(
-      prisma,
-      skip,
-      limit,
-      possibleFilters,
-    );
+    return await searchBooksByNameWithFuzzy(prisma, skip, limit, possibleFilters);
   }
 
   const where: Prisma.BookWhereInput = {
@@ -203,7 +189,7 @@ export async function getById(idBookS: string | string[]) {
 
   const book = await repository.book.findUnique({
     where: { id_book: bookId },
-    include: { category: true },
+    include: { category: true }
   });
 
   if (!book) {
@@ -236,9 +222,7 @@ export async function getAllBookCopiesWithBookId_AllInfo(bookIdS: string | strin
     throw new AppError("ID do livro inválido.", HTTPCODES.BADREQUEST);
   }
 
-  const bookExists = await repository.book.findUnique({
-    where: { id_book: bookId },
-  });
+  const bookExists = await repository.book.findUnique({where: { id_book: bookId }});
 
   if (!bookExists) {
     throw new AppError("Livro não encontrado.", HTTPCODES.NOTFOUND);
@@ -266,20 +250,13 @@ export async function create(body: CreateBookDTO) {
   }
 
   return repository.$transaction(async (tx) => {
-    const bookAlreadyExistsWithISBN = await tx.book.findUnique({
-      where: { isbn: isbn },
-    });
+    const bookAlreadyExistsWithISBN = await tx.book.findUnique({where: { isbn: isbn }});
 
     if (bookAlreadyExistsWithISBN) {
-      throw new AppError(
-        "Livro já existe com esse ISBN.",
-        HTTPCODES.BADREQUEST,
-      );
+      throw new AppError("Livro já existe com esse ISBN.", HTTPCODES.BADREQUEST);
     }
 
-    const doesCategoryExists = await tx.category.findUnique({
-      where: { id_category: categoryId },
-    });
+    const doesCategoryExists = await tx.category.findUnique({where: { id_category: categoryId }});
 
     if (!doesCategoryExists) {
       throw new AppError("Categoria não encontrada.", HTTPCODES.NOTFOUND);
@@ -313,9 +290,7 @@ export async function update(idBookS: string | string[], body: UpdateBookDTO) {
     }
 
     if (category) {
-      const doesCategoryExists = await tx.category.findUnique({
-        where: { id_category: category },
-      });
+      const doesCategoryExists = await tx.category.findUnique({where: { id_category: category },});
 
       if (!doesCategoryExists) {
         throw new AppError("Categoria não encontrada.", HTTPCODES.NOTFOUND);
@@ -323,18 +298,10 @@ export async function update(idBookS: string | string[], body: UpdateBookDTO) {
     }
 
     if (body.isbn) {
-      const doesBookAlreadyExistsWithThisISBN = await tx.book.findUnique({
-        where: { isbn: body.isbn as string },
-      });
+      const doesBookAlreadyExistsWithThisISBN = await tx.book.findUnique({where: { isbn: body.isbn as string }});
 
-      if (
-        (doesBookAlreadyExistsWithThisISBN &&
-          Number(doesBookAlreadyExistsWithThisISBN.id_book)) !== idBook
-      ) {
-        throw new AppError(
-          "Livro já existe com esse ISBN.",
-          HTTPCODES.BADREQUEST,
-        );
+      if ((doesBookAlreadyExistsWithThisISBN && Number(doesBookAlreadyExistsWithThisISBN.id_book)) !== idBook) {
+        throw new AppError("Livro já existe com esse ISBN.", HTTPCODES.BADREQUEST);
       }
     }
 
@@ -368,12 +335,12 @@ export async function deleteById(idBookS: string | string[]) {
     throw new AppError("Livro não encontrado.", HTTPCODES.NOTFOUND);
   }
 
-  const deletedBook = await repository.book.delete({
-    where: { id_book: idBook },
-  });
+  const deletedBook = await repository.book.delete({where: { id_book: idBook },});
+
   if (await isBookInCache(idBook)) {
     await invalidateCachedBook(idBook);
   }
+
   return deletedBook;
 }
 
@@ -412,17 +379,13 @@ export async function addAuthor(idBookS: string | string[], idAuthorS: string | 
   }
 
   return repository.$transaction(async (tx) => {
-    const doesAuthorExists = await tx.author.findUnique({
-      where: { id_author: idAuthor },
-    });
+    const doesAuthorExists = await tx.author.findUnique({where: { id_author: idAuthor },});
 
     if (!doesAuthorExists) {
       throw new AppError("Autor não existe.", HTTPCODES.NOTFOUND);
     }
 
-    const doesBookExists = await tx.book.findUnique({
-      where: { id_book: idBook },
-    });
+    const doesBookExists = await tx.book.findUnique({where: { id_book: idBook },});
 
     if (!doesBookExists) {
       throw new AppError("Livro não existe.", HTTPCODES.NOTFOUND);
@@ -438,15 +401,10 @@ export async function addAuthor(idBookS: string | string[], idAuthorS: string | 
     });
 
     if (isAuthorAlreadyInBook) {
-      throw new AppError(
-        "Autor já relacionado ao Livro.",
-        HTTPCODES.BADREQUEST,
-      );
+      throw new AppError("Autor já relacionado ao Livro.", HTTPCODES.BADREQUEST);
     }
 
-    return tx.authors_In_Book.create({
-      data: { fk_book_id: idBook, fk_author_id: idAuthor },
-    });
+    return tx.authors_In_Book.create({data: { fk_book_id: idBook, fk_author_id: idAuthor },});
   });
 }
 
@@ -463,17 +421,13 @@ export async function removeAuthor(idBookS: string | string[], idAuthorS: string
   }
 
   return repository.$transaction(async (tx) => {
-    const doesBookExists = await tx.book.findUnique({
-      where: { id_book: idBook },
-    });
+    const doesBookExists = await tx.book.findUnique({where: { id_book: idBook },});
 
     if (!doesBookExists) {
       throw new AppError("Livro não existe.", HTTPCODES.NOTFOUND);
     }
 
-    const doesAuthorExists = await tx.author.findUnique({
-      where: { id_author: idAuthor },
-    });
+    const doesAuthorExists = await tx.author.findUnique({where: { id_author: idAuthor },});
 
     if (!doesAuthorExists) {
       throw new AppError("Autor não existe.", HTTPCODES.NOTFOUND);
@@ -489,17 +443,10 @@ export async function removeAuthor(idBookS: string | string[], idAuthorS: string
     });
 
     if (!isAuthorRelatedToTheBook) {
-      throw new AppError(
-        "Autor não relacionado ao Livro.",
-        HTTPCODES.BADREQUEST,
-      );
+      throw new AppError("Autor não relacionado ao Livro.", HTTPCODES.BADREQUEST,);
     }
 
-    return tx.authors_In_Book.delete({
-      where: {
-        fk_author_id_fk_book_id: { fk_book_id: idBook, fk_author_id: idAuthor },
-      },
-    });
+    return tx.authors_In_Book.delete({where: {fk_author_id_fk_book_id: { fk_book_id: idBook, fk_author_id: idAuthor }}});
   });
 }
 
@@ -538,17 +485,13 @@ export async function addSubCategory(idBookS: string | string[], idSubCategoryS:
   }
 
   return repository.$transaction(async (tx) => {
-    const doesBookExists = await tx.book.findUnique({
-      where: { id_book: idBook },
-    });
+    const doesBookExists = await tx.book.findUnique({where: { id_book: idBook }});
 
     if (!doesBookExists) {
       throw new AppError("Livro não encontrado.", HTTPCODES.NOTFOUND);
     }
 
-    const doesSubCategoryExists = await tx.sub_Category.findUnique({
-      where: { id_sub_category: idSubCategory },
-    });
+    const doesSubCategoryExists = await tx.sub_Category.findUnique({where: { id_sub_category: idSubCategory },});
 
     if (!doesSubCategoryExists) {
       throw new AppError("Sub-Categoria não encontrada.", HTTPCODES.NOTFOUND);
@@ -565,15 +508,10 @@ export async function addSubCategory(idBookS: string | string[], idSubCategoryS:
       });
 
     if (isSubCategoryAlreadyInBook) {
-      throw new AppError(
-        "Sub-Categoria já relacionada ao Livro.",
-        HTTPCODES.BADREQUEST,
-      );
+      throw new AppError("Sub-Categoria já relacionada ao Livro.", HTTPCODES.BADREQUEST);
     }
 
-    return tx.sub_Categories_Of_Book.create({
-      data: { fk_book_id: idBook, fk_sub_category: idSubCategory },
-    });
+    return tx.sub_Categories_Of_Book.create({data: { fk_book_id: idBook, fk_sub_category: idSubCategory }});
   });
 }
 
@@ -590,17 +528,13 @@ export async function removeSubCategory(idBookS: string | string[], idSubCategor
   }
 
   return repository.$transaction(async (tx) => {
-    const doesBookExists = await tx.book.findUnique({
-      where: { id_book: idBook },
-    });
+    const doesBookExists = await tx.book.findUnique({where: { id_book: idBook }});
 
     if (!doesBookExists) {
       throw new AppError("Livro não encontrado.", HTTPCODES.NOTFOUND);
     }
 
-    const doesSubCategoryExists = await tx.sub_Category.findUnique({
-      where: { id_sub_category: idSubCategory },
-    });
+    const doesSubCategoryExists = await tx.sub_Category.findUnique({where: { id_sub_category: idSubCategory }});
 
     if (!doesSubCategoryExists) {
       throw new AppError("Sub-Categoria não encontrada.", HTTPCODES.NOTFOUND);
@@ -617,19 +551,9 @@ export async function removeSubCategory(idBookS: string | string[], idSubCategor
       });
 
     if (!isSubCategoryRelatedToTheBook) {
-      throw new AppError(
-        "Sub-Categoria não relacionada ao Livro.",
-        HTTPCODES.BADREQUEST,
-      );
+      throw new AppError("Sub-Categoria não relacionada ao Livro.", HTTPCODES.BADREQUEST,);
     }
 
-    return tx.sub_Categories_Of_Book.delete({
-      where: {
-        fk_sub_category_fk_book_id: {
-          fk_book_id: idBook,
-          fk_sub_category: idSubCategory,
-        },
-      },
-    });
+    return tx.sub_Categories_Of_Book.delete({where: {fk_sub_category_fk_book_id: {fk_book_id: idBook, fk_sub_category: idSubCategory}}});
   });
 }
