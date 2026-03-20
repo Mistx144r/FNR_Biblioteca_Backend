@@ -70,11 +70,7 @@ function isPaginatedBooksInCache(page: number, limit: number) {
   return redis.exists(`${env.NODE_ENV}:Book:${page}:${limit}`);
 }
 
-function savePaginatedBooksInCache(
-  pages: number,
-  limit: number,
-  data: PaginatedReturnData,
-) {
+function savePaginatedBooksInCache(pages: number, limit: number, data: PaginatedReturnData) {
   return redis
     .multi()
     .set(
@@ -93,11 +89,7 @@ async function returnCachedPaginatedBooks(page: number, limit: number) {
 //================================
 // Main Book Functions
 //================================
-export async function getAll(
-  pageS: string = "1",
-  limitS: string = "10",
-  possibleFilters: PossibleFilters,
-) {
+export async function getAll(pageS: string = "1", limitS: string = "10", possibleFilters: PossibleFilters) {
   const page = Number(pageS);
   const limit = Number(limitS);
   const hasFilters =
@@ -237,9 +229,7 @@ export async function getAllBookInfoById(idBookS: string | string[]) {
   };
 }
 
-export async function getAllBookCopiesWithBookId_AllInfo(
-  bookIdS: string | string[],
-) {
+export async function getAllBookCopiesWithBookId_AllInfo(bookIdS: string | string[]) {
   const bookId = returnNumberedID(bookIdS);
 
   if (!bookId) {
@@ -409,10 +399,7 @@ export async function getAuthors(idBookS: string | string[]) {
   return authors.map((a) => a.author);
 }
 
-export async function addAuthor(
-  idBookS: string | string[],
-  idAuthorS: string | string[],
-) {
+export async function addAuthor(idBookS: string | string[], idAuthorS: string | string[]) {
   const idBook = returnNumberedID(idBookS);
   const idAuthor = returnNumberedID(idAuthorS);
 
@@ -463,10 +450,7 @@ export async function addAuthor(
   });
 }
 
-export async function removeAuthor(
-  idBookS: string | string[],
-  idAuthorS: string | string[],
-) {
+export async function removeAuthor(idBookS: string | string[], idAuthorS: string | string[]) {
   const idBook = returnNumberedID(idBookS);
   const idAuthor = returnNumberedID(idAuthorS);
 
@@ -541,10 +525,7 @@ export async function getSubCategories(idBookS: string | string[]) {
   return subcategories.map((a) => a.sub_category);
 }
 
-export async function addSubCategory(
-  idBookS: string | string[],
-  idSubCategoryS: string | string[],
-) {
+export async function addSubCategory(idBookS: string | string[], idSubCategoryS: string | string[]) {
   const idBook = returnNumberedID(idBookS);
   const idSubCategory = returnNumberedID(idSubCategoryS);
 
@@ -596,10 +577,7 @@ export async function addSubCategory(
   });
 }
 
-export async function removeSubCategory(
-  idBookS: string | string[],
-  idSubCategoryS: string | string[],
-) {
+export async function removeSubCategory(idBookS: string | string[], idSubCategoryS: string | string[]) {
   const idBook = returnNumberedID(idBookS);
   const idSubCategory = returnNumberedID(idSubCategoryS);
 

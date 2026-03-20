@@ -1,4 +1,3 @@
-import { Book } from "@prisma/client";
 import { z } from "zod";
 
 export const createBookSchema = z.object({
