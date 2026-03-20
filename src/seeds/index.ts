@@ -12,6 +12,7 @@ async function main() {
     await seeds.seedInstitutions();
     await seeds.seedBookCopies();
     await seeds.seedAuthorsInBooks();
+    await seeds.seedWorkerRoles();
 }
 
 main().then(() => console.log("Done!"));

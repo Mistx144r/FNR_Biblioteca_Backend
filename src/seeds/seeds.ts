@@ -474,3 +474,41 @@ export async function seedAuthorsInBooks() {
 
     console.log("✅ Authors in Books seed concluído!");
 }
+
+export async function seedWorkerRoles() {
+    const [admin, maria, joao] = await Promise.all([
+        prisma.worker.findUnique({ where: { cpf: "52998224725" } }),
+        prisma.worker.findUnique({ where: { cpf: "11144477735" } }),
+        prisma.worker.findUnique({ where: { cpf: "47392923840" } }),
+    ]);
+
+    const [roleAdmin, roleBibliotecario, roleAuxiliar] = await Promise.all([
+        prisma.roles.findFirst({ where: { name: "Administrador" } }),
+        prisma.roles.findFirst({ where: { name: "Bibliotecário" } }),
+        prisma.roles.findFirst({ where: { name: "Auxiliar" } }),
+    ]);
+
+    const relations = [
+        // Admin Master → Administrador
+        { fk_worker_id: admin!.id_worker, fk_role_id: roleAdmin!.id_roles },
+        // Maria → Bibliotecária
+        { fk_worker_id: maria!.id_worker, fk_role_id: roleBibliotecario!.id_roles },
+        // João → Auxiliar
+        { fk_worker_id: joao!.id_worker, fk_role_id: roleAuxiliar!.id_roles },
+    ];
+
+    for (const relation of relations) {
+        await prisma.worker_Roles.upsert({
+            where: {
+                fk_role_id_fk_worker_id: {
+                    fk_worker_id: relation.fk_worker_id,
+                    fk_role_id: relation.fk_role_id,
+                }
+            },
+            update: {},
+            create: relation,
+        });
+    }
+
+    console.log("✅ Worker Roles seed concluído!");
+}
