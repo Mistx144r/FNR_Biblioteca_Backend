@@ -13,26 +13,36 @@ enum stateEnum {
   RESERVADO
   EMPRESTADO
   INDISPONIVEL
+
+  @@map("state_enum")
 }
 
-// Adicionar Depois A Cidade Do Trabalhador
+// Adicionar Depois A Cidade Do Trabalhador 
 model Worker {
-  id_worker    BigInt         @id @default(autoincrement())
-  name         String         @db.VarChar(255)
-  cpf          String         @unique @db.VarChar(14)
-  password     String         @db.Text
-  email        String         @unique @db.VarChar(255)
-  telephone    String?        @db.VarChar(9) // Nullable
-  cellphone    String         @db.VarChar(15)
-  created_at   DateTime       @default(now())
-  updated_at   DateTime       @updatedAt
+  id_worker         BigInt   @id @default(autoincrement())
+  name              String   @db.VarChar(255)
+  cpf               String   @unique @db.VarChar(14)
+  password          String   @db.Text
+  email             String   @unique @db.VarChar(255)
+  telephone         String?  @db.VarChar(9) // Nullable
+  cellphone         String   @db.VarChar(15)
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+  fk_institution_id BigInt
+
+  institution Institution @relation(fields: [fk_institution_id], references: [id_institution])
+
   Worker_Roles Worker_Roles[]
+
+  @@map("worker")
 }
 
 model Roles {
   id_roles     BigInt         @id @default(autoincrement())
   name         String         @db.VarChar(255)
   Worker_Roles Worker_Roles[]
+
+  @@map("roles")
 }
 
 model Worker_Roles {
@@ -44,6 +54,7 @@ model Worker_Roles {
   worker Worker @relation(fields: [fk_worker_id], references: [id_worker])
 
   @@unique([fk_role_id, fk_worker_id])
+  @@map("worker_roles")
 }
 
 model Book {
@@ -65,12 +76,16 @@ model Book {
   Authors_In_Book        Authors_In_Book[]
   Sub_Categories_Of_Book Sub_Categories_Of_Book[]
   bookCopies             Book_Copy[]
+
+  @@map("book")
 }
 
 model Author {
   id_author       BigInt            @id @default(autoincrement())
   name            String            @db.VarChar(255)
   Authors_In_Book Authors_In_Book[]
+
+  @@map("author")
 }
 
 model Authors_In_Book {
@@ -82,16 +97,23 @@ model Authors_In_Book {
   book   Book   @relation(fields: [fk_book_id], references: [id_book], onDelete: Cascade)
 
   @@unique([fk_author_id, fk_book_id])
+  @@map("authors_in_book")
 }
 
 model Sector {
-  id_sector      BigInt @id @default(autoincrement())
-  name           String @db.VarChar(255)
-  letter         String @unique @db.VarChar(1)
-  fk_category_id BigInt
+  id_sector         BigInt @id @default(autoincrement())
+  name              String @db.VarChar(255)
+  letter            String @db.VarChar(1)
+  fk_category_id    BigInt
+  fk_institution_id BigInt
 
-  category Category   @relation(fields: [fk_category_id], references: [id_category])
-  Bookcase Bookcase[]
+  category    Category    @relation(fields: [fk_category_id], references: [id_category])
+  institution Institution @relation(fields: [fk_institution_id], references: [id_institution])
+  Bookcase    Bookcase[]
+
+  @@unique([fk_institution_id, name])
+  @@unique([fk_institution_id, letter])
+  @@map("sector")
 }
 
 model Bookcase {
@@ -101,6 +123,8 @@ model Bookcase {
 
   sector     Sector      @relation(fields: [fk_sector_id], references: [id_sector])
   bookCopies Book_Copy[]
+
+  @@map("bookcase")
 }
 
 model Book_Copy {
@@ -116,12 +140,18 @@ model Book_Copy {
   bookcase    Bookcase    @relation(fields: [fk_bookcase_id], references: [id_bookcase])
   book        Book        @relation(fields: [fk_book_id], references: [id_book])
   institution Institution @relation(fields: [fk_institution_id], references: [id_institution])
+
+  @@map("book_copy")
 }
 
 model Institution {
   id_institution BigInt      @id @default(autoincrement())
   name           String      @db.VarChar(255)
   bookCopies     Book_Copy[]
+  sectors        Sector[]
+  workers        Worker[]
+
+  @@map("institution")
 }
 
 model Category {
@@ -129,12 +159,16 @@ model Category {
   name        String   @db.VarChar(255)
   Book        Book[]
   Sector      Sector[]
+
+  @@map("category")
 }
 
 model Sub_Category {
   id_sub_category        BigInt                   @id @default(autoincrement())
   name                   String                   @db.VarChar(255)
   Sub_Categories_Of_Book Sub_Categories_Of_Book[]
+
+  @@map("sub_category")
 }
 
 model Sub_Categories_Of_Book {
@@ -146,4 +180,5 @@ model Sub_Categories_Of_Book {
   book         Book         @relation(fields: [fk_book_id], references: [id_book], onDelete: Cascade)
 
   @@unique([fk_sub_category, fk_book_id])
+  @@map("sub_categories_in_book")
 }

@@ -30,49 +30,11 @@ export async function getById(sectorIds: string | string[]) {
     return sector;
 }
 
-export async function create(body: CreateSectorDTO) {
-    const categoryExists = await prisma.category.findUnique({ where: { id_category: body.category } });
-
-    if (!categoryExists) {
-        throw new AppError("Categoria não encontrada.", HTTPCODES.NOTFOUND);
-    }
-
-    const alreadyExists = await prisma.sector.findFirst({where: {OR: [{name: body.name}, {letter: body.letter}]}});
-
-    if (alreadyExists) {
-        throw new AppError("Um Setor já existe com esse nome ou letra.", HTTPCODES.BADREQUEST);
-    }
-
-    return repository.sector.create({
-        data: {
-            ...body,
-            category: {
-                connect: { id_category: body.category }
-            }
-        }
-    });
-}
-
-export async function update(sectorIds: string | string[], body: UpdateSectorDTO) {
-    const { category, ...rest } = body;
+export async function getAllBookcasesInSectorById(sectorIds: string | string[]) {
     const sectorId = returnNumberedID(sectorIds);
 
     if (!sectorId) {
         throw new AppError("ID do Setor inválido.", HTTPCODES.BADREQUEST);
-    }
-
-    const alreadyExists = await prisma.sector.findFirst({where: {OR: [{name: body.name}, {letter: body.letter}]}});
-
-    if (alreadyExists && Number(alreadyExists.id_sector) !== sectorId) {
-        throw new AppError("Um Setor já existe com essa letra.", HTTPCODES.BADREQUEST);
-    }
-
-    if (category) {
-        const categoryExists = await prisma.category.findUnique({ where: { id_category: category } });
-
-        if (!categoryExists) {
-            throw new AppError("Categoria não encontrada.", HTTPCODES.NOTFOUND);
-        }
     }
 
     const sector = await prisma.sector.findUnique({where: {id_sector: sectorId}});
@@ -81,12 +43,102 @@ export async function update(sectorIds: string | string[], body: UpdateSectorDTO
         throw new AppError("Setor não encontrado.", HTTPCODES.NOTFOUND);
     }
 
-    return repository.sector.update({
-        where: { id_sector: sectorId },
-        data: {
-            ...rest,
-            ...(category && { category: { connect: { id_category: category } } })
+    return repository.bookcase.findMany({where: {fk_sector_id: sectorId}});
+}
+
+export async function create(body: CreateSectorDTO) {
+    const { category, institution, ...rest } = body;
+
+    return repository.$transaction(async (tx) => {
+        const categoryExists = await tx.category.findUnique({ where: { id_category: category } });
+
+        if (!categoryExists) {
+            throw new AppError("Categoria não encontrada.", HTTPCODES.NOTFOUND);
         }
+
+        const institutionExists = await tx.institution.findUnique({ where: { id_institution: institution } });
+
+        if (!institutionExists) {
+            throw new AppError("Instituição não encontrada.", HTTPCODES.NOTFOUND);
+        }
+
+        const alreadyExists = await tx.sector.findFirst({
+            where: {
+                fk_institution_id: institution,
+                OR: [{ name: body.name }, { letter: body.letter }]
+            }
+        });
+
+        if (alreadyExists) {
+            throw new AppError("Um Setor já existe com esse nome ou letra nessa Instituição.", HTTPCODES.BADREQUEST);
+        }
+
+        return tx.sector.create({
+            data: {
+                ...rest,
+                category: { connect: { id_category: category } },
+                institution: { connect: { id_institution: institution } }
+            }
+        });
+    });
+}
+
+export async function update(sectorIds: string | string[], body: UpdateSectorDTO) {
+    const { category, institution, ...rest } = body;
+    const sectorId = returnNumberedID(sectorIds);
+
+    if (!sectorId) {
+        throw new AppError("ID do Setor inválido.", HTTPCODES.BADREQUEST);
+    }
+
+    return repository.$transaction(async (tx) => {
+        const sector = await tx.sector.findUnique({ where: { id_sector: sectorId } });
+
+        if (!sector) {
+            throw new AppError("Setor não encontrado.", HTTPCODES.NOTFOUND);
+        }
+
+        const institutionId = institution ?? Number(sector.fk_institution_id);
+
+        const alreadyExists = await tx.sector.findFirst({
+            where: {
+                fk_institution_id: institutionId,
+                OR: [
+                    ...(body.name ? [{ name: body.name }] : []),
+                    ...(body.letter ? [{ letter: body.letter }] : []),
+                ],
+                NOT: { id_sector: sectorId }
+            }
+        });
+
+        if (alreadyExists) {
+            throw new AppError("Um Setor já existe com esse nome ou letra nessa Instituição.", HTTPCODES.BADREQUEST);
+        }
+
+        if (category) {
+            const categoryExists = await tx.category.findUnique({ where: { id_category: category } });
+
+            if (!categoryExists) {
+                throw new AppError("Categoria não encontrada.", HTTPCODES.NOTFOUND);
+            }
+        }
+
+        if (institution) {
+            const institutionExists = await tx.institution.findUnique({ where: { id_institution: institution } });
+
+            if (!institutionExists) {
+                throw new AppError("Instituição não encontrada.", HTTPCODES.NOTFOUND);
+            }
+        }
+
+        return tx.sector.update({
+            where: { id_sector: sectorId },
+            data: {
+                ...rest,
+                ...(category && { category: { connect: { id_category: category } } }),
+                ...(institution && { institution: { connect: { id_institution: institution } } })
+            }
+        });
     });
 }
 

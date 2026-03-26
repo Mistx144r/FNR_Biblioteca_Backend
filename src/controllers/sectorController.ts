@@ -16,6 +16,12 @@ export const getById = asyncHandler(async (req: Request, res: Response) => {
     res.status(HTTPCODES.OK).json(serializeBigInt(sector));
 });
 
+export const getAllBookcasesInSectorById = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const bookcases = await sectorService.getAllBookcasesInSectorById(id);
+    res.status(HTTPCODES.OK).json(serializeBigInt(bookcases));
+});
+
 export const create = asyncHandler(async (req: Request, res: Response) => {
     const body = createSectorSchema.parse(req.body);
     const newSector = await sectorService.create(body);

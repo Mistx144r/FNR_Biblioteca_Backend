@@ -76,7 +76,7 @@ describe("POST /api/v1/sectors", () => {
         const response = await request(app)
             .post("/api/v1/sectors")
             .set("Cookie", `accessToken=${token}`)
-            .send({ name: "Setor Novo", letter: "Z", category: 999999999 });
+            .send({ name: "Setor Novo", letter: "Z", category: 999999999, institution: 1 });
 
         expect(response.status).toBe(HTTPCODES.NOTFOUND);
     });

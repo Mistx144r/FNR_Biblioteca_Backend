@@ -11,6 +11,8 @@ export const createBookSchema = z.object({
   pages: z.coerce.number().positive(),
   bookcover: z.url(),
   published_at: z.coerce.date(),
+  authors: z.number().array().optional(),
+  subcategories: z.number().array().optional()
 });
 
 export const bookFilterSchema = z

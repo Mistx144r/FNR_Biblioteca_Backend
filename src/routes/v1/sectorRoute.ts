@@ -7,6 +7,7 @@ const router = express.Router();
 
 router.get("/", sectorController.getAll);
 router.get("/:id", sectorController.getById);
+router.get("/:id/bookcases", sectorController.getAllBookcasesInSectorById);
 
 router.post("/", workerAuthMiddleware, requireRole(["Administrador", "Bibliotecário"]), sectorController.create);
 

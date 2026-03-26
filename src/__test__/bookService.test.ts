@@ -26,7 +26,7 @@ describe("GET /api/v1/books", () => {
 
         expect(response.status).toBe(HTTPCODES.OK);
         expect(response.body.meta.limit).toBe(5);
-        expect(response.body.meta.pages).toBe(1);
+        expect(response.body.meta.page).toBe(1);
     });
 
     it("Deve retornar erro pois a página enviada é inválida. STATUS: 400", async () => {
@@ -86,9 +86,9 @@ describe("GET /api/v1/books/:id/everything", () => {
             .set("Cookie", `accessToken=${token}`);
 
         expect(response.status).toBe(HTTPCODES.OK);
-        expect(response.body).toHaveProperty("book");
         expect(response.body).toHaveProperty("authors");
         expect(response.body).toHaveProperty("subCategories");
+        expect(response.body).toHaveProperty("category");
     });
 
     it("Deve retornar erro pois o livro não existe. STATUS: 404", async () => {

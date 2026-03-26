@@ -6,7 +6,8 @@ export const createWorkerSchema = z.object({
     password: z.string().min(8).max(32),
     cpf: z.string().regex(/^(\d{3}\.\d{3}\.\d{3}-\d{2}|\d{11})$/),
     cellphone: z.string().regex(/^\(\d{2}\) \d{5}-\d{4}$/).min(11),
-    telephone: z.string().regex(/^\d{4}-\d{4}$/).min(8).optional()
+    telephone: z.string().regex(/^\d{4}-\d{4}$/).min(8).optional(),
+    institution: z.number().positive()
 });
 
 export const loginWorkerSchema = z.object({

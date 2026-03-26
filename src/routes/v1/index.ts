@@ -7,6 +7,7 @@ import workerRoute from "./workerRoute";
 import sectorRoute from "./sectorRoute";
 import bookcaseRoute from "./bookcaseRoute";
 import bookcopyRoute from "./bookcopyRoute";
+import institutionRoute from "./institutionRoute";
 
 const router = Router();
 
@@ -18,5 +19,6 @@ router.use("/workers", workerRoute);
 router.use("/sectors", sectorRoute);
 router.use("/bookcases", bookcaseRoute);
 router.use("/bookcopies", bookcopyRoute);
+router.use("/institutions", institutionRoute);
 
 export default router;

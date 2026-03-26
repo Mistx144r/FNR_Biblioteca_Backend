@@ -13,10 +13,10 @@ export const createBookCopySchema = z.object({
 
 export const updateBookCopyStateSchema = z.object({
     state: z.enum(stateEnum)
-})
+});
 
 export const updateBookCopySchema = z.object({
     bookcase: z.number().positive(),
     institution: z.number().positive(),
     description: z.string(),
-}).partial()
+}).partial();

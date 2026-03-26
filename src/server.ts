@@ -16,7 +16,8 @@ const PORT = 3000;
 
 app.use(
     cors({
-        origin: "*"
+        origin: "http://localhost:5173",
+        credentials: true
     })
 );
 
@@ -26,6 +27,6 @@ app.use("/reference", apiReference({url: "/openapi.json"}));
 app.use("/api/v1/", routesV1);
 app.use(errorHandler);
 
-app.listen(env.PORT ?? 3000, () => {
+app.listen(env.PORT ?? 3000, '0.0.0.0', () => {
     logger.info(`O Servidor esta rodando: http://localhost:${PORT}`);
 });

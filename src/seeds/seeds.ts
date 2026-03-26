@@ -237,6 +237,7 @@ export async function seedWorkers() {
             email: "admin@biblioteca.edu.br",
             cellphone: "(81) 99999-0001",
             telephone: "3333-0001",
+            fk_institution_id: 1n
         },
         {
             name: "Maria Bibliotecária",
@@ -245,6 +246,7 @@ export async function seedWorkers() {
             email: "maria@biblioteca.edu.br",
             cellphone: "(81) 99999-0002",
             telephone: "3333-0002",
+            fk_institution_id: 1n
         },
         {
             name: "João Auxiliar",
@@ -252,6 +254,7 @@ export async function seedWorkers() {
             password: await bcrypt.hash("Joao@123", 10),
             email: "joao@biblioteca.edu.br",
             cellphone: "(81) 99999-0003",
+            fk_institution_id: 2n
         },
     ];
 
@@ -292,11 +295,11 @@ export async function seedCategories() {
 
 export async function seedSectors() {
     const sectors = [
-        { name: "Setor de Literatura",        letter: "A", fk_category_id: 1n },
-        { name: "Setor de Tecnologia",         letter: "B", fk_category_id: 5n },
-        { name: "Setor de Ciências Humanas",   letter: "C", fk_category_id: 3n },
-        { name: "Setor de Ciências Exatas",    letter: "D", fk_category_id: 2n },
-        { name: "Setor de Saúde",              letter: "E", fk_category_id: 8n },
+        { name: "Setor de Literatura",        letter: "A", fk_category_id: 1n, fk_institution_id: 1n },
+        { name: "Setor de Tecnologia",         letter: "B", fk_category_id: 5n, fk_institution_id: 1n},
+        { name: "Setor de Ciências Humanas",   letter: "C", fk_category_id: 3n, fk_institution_id: 1n},
+        { name: "Setor de Ciências Exatas",    letter: "D", fk_category_id: 2n, fk_institution_id: 1n},
+        { name: "Setor de Saúde",              letter: "E", fk_category_id: 8n, fk_institution_id: 1n},
     ];
 
     await prisma.sector.createMany({

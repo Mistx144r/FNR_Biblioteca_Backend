@@ -133,59 +133,79 @@ export async function getWorkerAllInfoById(workerIdS: string | string[]) {
 }
 
 export async function create(body: CreateWorkerDTO) {
-    const { cpf, email, password } = body;
+    const { password, institution, ...rest } = body;
 
-    const alreadyExists = await repository.worker.findFirst({where: {OR: [{cpf: cpf}, {email: email}]}});
+    const alreadyExists = await repository.worker.findFirst({where: {OR: [{cpf: body.cpf}, {email: body.email}]}});
 
     if (alreadyExists) {
         throw new AppError("Funcionário já existe.", HTTPCODES.BADREQUEST);
     }
 
-    if (!isCPFValid(cpf)) {
+    if (!isCPFValid(body.cpf)) {
         throw new AppError("CPF é inválido.", HTTPCODES.BADREQUEST);
     }
 
     const encryptedPassword = await bcrypt.hash(password, 10);
 
-
-    body = {
-        ...body,
-        password: String(encryptedPassword)
-    }
-
-    return repository.worker.create({data: body});
+    return repository.worker.create({
+        data: {
+            ...rest,
+            fk_institution_id: institution,
+            password: String(encryptedPassword)
+        }
+    });
 }
 
 export async function update(workerIdS: string | string[], body: UpdateWorkerDTO) {
-    const { cpf, email, password } = body;
+    const { cpf, email, password, institution, ...rest } = body;
     const workerId = returnNumberedID(workerIdS);
 
     if (!workerId) {
         throw new AppError("ID do Funcionário inválido.", HTTPCODES.BADREQUEST);
     }
 
-    const worker = await repository.worker.findUnique({where: {id_worker: workerId}});
+    return repository.$transaction(async (tx) => {
+        const worker = await tx.worker.findUnique({ where: { id_worker: workerId } });
 
-    if (!worker) {
-        throw new AppError("Funcionário não encontrado.", HTTPCODES.NOTFOUND);
-    }
-
-    const alreadyExists = await repository.worker.findFirst({where: {OR: [{ cpf }, { email }], NOT: { id_worker: workerId }}});
-
-    if (alreadyExists) {
-        throw new AppError("Um Funcionário com esses dados já existe.", HTTPCODES.BADREQUEST);
-    }
-
-    if (password) {
-        const encryptedPassword = await bcrypt.hash(password, 10);
-
-        body = {
-            ...body,
-            password: String(encryptedPassword)
+        if (!worker) {
+            throw new AppError("Funcionário não encontrado.", HTTPCODES.NOTFOUND);
         }
-    }
 
-    return repository.worker.update({where: {id_worker: workerId}, data: body});
+        const alreadyExists = await tx.worker.findFirst({
+            where: {
+                OR: [
+                    ...(cpf ? [{ cpf }] : []),
+                    ...(email ? [{ email }] : [])
+                ],
+                NOT: { id_worker: workerId }
+            }
+        });
+
+        if (alreadyExists) {
+            throw new AppError("Um Funcionário com esses dados já existe.", HTTPCODES.BADREQUEST);
+        }
+
+        if (institution) {
+            const institutionExists = await tx.institution.findUnique({ where: { id_institution: institution } });
+
+            if (!institutionExists) {
+                throw new AppError("Instituição não encontrada.", HTTPCODES.NOTFOUND);
+            }
+        }
+
+        const encryptedPassword = password ? String(await bcrypt.hash(password, 10)) : undefined;
+
+        return tx.worker.update({
+            where: { id_worker: workerId },
+            data: {
+                ...rest,
+                ...(cpf && { cpf }),
+                ...(email && { email }),
+                ...(encryptedPassword && { password: encryptedPassword }),
+                ...(institution && { institution: { connect: { id_institution: institution } } })
+            }
+        });
+    });
 }
 
 export async function deleteById(workerIdS: string | string[]) {

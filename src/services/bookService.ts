@@ -242,7 +242,7 @@ export async function getAllBookCopiesWithBookId_AllInfo(bookIdS: string | strin
 }
 
 export async function create(body: CreateBookDTO) {
-  const { isbn, category } = body;
+  const { isbn, category, subcategories, authors, ...rest } = body;
   const categoryId = category;
 
   if (!categoryId) {
@@ -250,24 +250,82 @@ export async function create(body: CreateBookDTO) {
   }
 
   return repository.$transaction(async (tx) => {
-    const bookAlreadyExistsWithISBN = await tx.book.findUnique({where: { isbn: isbn }});
+    const bookAlreadyExistsWithISBN = await tx.book.findUnique({
+      where: { isbn },
+    });
 
     if (bookAlreadyExistsWithISBN) {
       throw new AppError("Livro já existe com esse ISBN.", HTTPCODES.BADREQUEST);
     }
 
-    const doesCategoryExists = await tx.category.findUnique({where: { id_category: categoryId }});
+    const doesCategoryExists = await tx.category.findUnique({
+      where: { id_category: categoryId },
+    });
 
     if (!doesCategoryExists) {
       throw new AppError("Categoria não encontrada.", HTTPCODES.NOTFOUND);
     }
 
-    return tx.book.create({
+    if (subcategories?.length) {
+      const foundSubCategories = await tx.sub_Category.findMany({
+        where: { id_sub_category: { in: subcategories } },
+        select: { id_sub_category: true },
+      });
+
+      if (foundSubCategories.length !== subcategories.length) {
+        throw new AppError("Uma ou mais sub-categorias não encontradas.", HTTPCODES.NOTFOUND);
+      }
+    }
+
+    if (authors?.length) {
+      const foundAuthors = await tx.author.findMany({
+        where: { id_author: { in: authors } },
+        select: { id_author: true },
+      });
+
+      if (foundAuthors.length !== authors.length) {
+        throw new AppError("Um ou mais autores não encontrados.", HTTPCODES.NOTFOUND);
+      }
+    }
+
+    const book = await tx.book.create({
       data: {
-        ...body,
+        ...rest,
+        isbn: isbn,
         published_at: body.published_at,
         category: {
           connect: { id_category: categoryId },
+        },
+      },
+    });
+
+    if (authors?.length) {
+      await tx.authors_In_Book.createMany({
+        data: authors.map((id_author) => ({
+          fk_author_id: id_author,
+          fk_book_id: book.id_book,
+        })),
+      });
+    }
+
+    if (subcategories?.length) {
+      await tx.sub_Categories_Of_Book.createMany({
+        data: subcategories.map((id_sub_category) => ({
+          fk_sub_category: id_sub_category,
+          fk_book_id: book.id_book,
+        })),
+      });
+    }
+
+    return tx.book.findUnique({
+      where: { id_book: book.id_book },
+      include: {
+        category: true,
+        Authors_In_Book: {
+          include: { author: true },
+        },
+        Sub_Categories_Of_Book: {
+          include: { sub_category: true },
         },
       },
     });
